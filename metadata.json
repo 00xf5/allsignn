@@ -1,0 +1,6 @@
+{
+  "name": "Digital Card and RSVP Hub",
+  "description": "An interactive digital invitation designer, RSVP manager, and secure webmail verification simulator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
