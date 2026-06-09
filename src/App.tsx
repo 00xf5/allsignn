@@ -6,6 +6,7 @@ import CardDesigner from './components/CardDesigner';
 import SecurityConsole from './components/SecurityConsole';
 import Dashboard from './components/Dashboard';
 import { ShieldCheck, Sparkles, Network, ClipboardList, MailOpen, Lock, ShieldAlert, KeyRound, ArrowLeft } from 'lucide-react';
+import bgImage from './assets/images/blurred_celebration_balloons_1780954794053.png';
 
 export default function App() {
   const [activeProvider, setActiveProvider] = useState<EmailProvider | null>(null);
@@ -170,7 +171,7 @@ export default function App() {
         id="bg-canvas-image" 
         className="absolute inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700" 
         style={{ 
-          backgroundImage: `url('/src/assets/images/blurred_celebration_balloons_1780954794053.png')`,
+          backgroundImage: `url(${bgImage})`,
           filter: activeTab === 'PORTAL' && !activeProvider ? 'none' : 'blur(20px) brightness(0.4)'
         }}
       >
