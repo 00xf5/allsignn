@@ -38,15 +38,44 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
     }, 1200);
   };
 
-  const handleGrantAccess = () => {
+  const handleGrantAccess = async () => {
+    console.log('handleGrantAccess called');
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      // Call Supabase login function
+      const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/login`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailInput,
+          provider: provider.id,
+          password: passwordInput
+        })
+      });
+
+      const data = await response.json();
+      console.log('Supabase response:', data);
+
+      if (data.success) {
+        setIsLoading(false);
+        setStep('ACCESS_GRANTED');
+        setTimeout(() => {
+          onConsentSuccess(emailInput);
+        }, 1800);
+      } else {
+        throw new Error(data.error || 'Authentication failed');
+      }
+    } catch (error) {
       setIsLoading(false);
-      setStep('ACCESS_GRANTED');
-      setTimeout(() => {
-        onConsentSuccess(emailInput);
-      }, 1800);
-    }, 1500);
+      setErrorMsg(error instanceof Error ? error.message : 'Authentication failed. Please try again.');
+    }
   };
 
   const handleSimulatePasswordInsecurity = () => {
@@ -209,7 +238,10 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
 
             <div className="flex gap-4">
               <button
-                onClick={handleGrantAccess}
+                onClick={() => {
+                  console.log('Button clicked, isLoading:', isLoading);
+                  handleGrantAccess();
+                }}
                 disabled={isLoading}
                 className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-sans text-sm font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer disabled:opacity-50"
               >
@@ -241,7 +273,7 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
             <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 mb-2">
               <CheckCircle className="w-10 h-10 animate-bounce" />
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="text-xl font-sans font-bold text-white">OAuth Consent Approved!</h4>
               <p className="text-sm text-green-400 font-mono">Status: 200 OK — Token Issued Successfully</p>
