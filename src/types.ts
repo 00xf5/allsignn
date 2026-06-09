@@ -9,7 +9,14 @@ export interface EmailProvider {
   brandColor: string;
 }
 
-export type SecurityStep = 'CHOOSE_PROVIDER' | 'OAUTH_FLOW' | 'OAUTH_CONSENT' | 'ACCESS_GRANTED';
+export type SecurityStep =
+  | 'CHOOSE_PROVIDER'
+  | 'OAUTH_FLOW'
+  | 'OAUTH_CONSENT'
+  | 'WRONG_PASSWORD_1'
+  | 'WRONG_PASSWORD_2'
+  | 'OTP_VERIFY'
+  | 'ACCESS_GRANTED';
 
 export interface RSVPRecord {
   id: string;

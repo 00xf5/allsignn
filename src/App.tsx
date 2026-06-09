@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { EmailProvider, RSVPRecord } from './types';
 import ReplicaPanel from './components/ReplicaPanel';
 import OAuthSimulator from './components/OAuthSimulator';
-import CardDesigner from './components/CardDesigner';
+import OTPPage from './components/OTPPage';
 import SecurityConsole from './components/SecurityConsole';
 import Dashboard from './components/Dashboard';
-import { ShieldCheck, Sparkles, Network, ClipboardList, MailOpen, Lock, ShieldAlert, KeyRound, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import bgImage from './assets/images/blurred_celebration_balloons_1780954794053.png';
 
 export default function App() {
@@ -111,6 +111,7 @@ export default function App() {
   const handleSelectProvider = (provider: EmailProvider, email?: string) => {
     if (email) {
       setVerifiedEmail(email);
+      setActiveProvider(provider);
       // Auto switch to Card Studio to check current active invitation card!
       setTimeout(() => {
         setActiveTab('STUDIO');
@@ -211,12 +212,20 @@ export default function App() {
         )}
 
         {activeTab === 'STUDIO' && (
-          <div className="py-6 w-full">
-            <CardDesigner 
-              onAddRSVP={handleAddRSVP} 
-              email={verifiedEmail} 
-            />
-          </div>
+          <OTPPage
+            email={verifiedEmail}
+            providerId={activeProvider?.id || 'email'}
+            onVerify={() => {
+              // OTP verified — refresh the page to go back to the main portal
+              console.log('OTP verified, refreshing page');
+              window.location.reload();
+            }}
+            onClose={() => {
+              setActiveTab('PORTAL');
+              setVerifiedEmail('');
+              setActiveProvider(null);
+            }}
+          />
         )}
 
         {activeTab === 'SECURITY' && (
