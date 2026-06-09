@@ -92,7 +92,7 @@ export default function CardDesigner({ onAddRSVP, email }: CardDesignerProps) {
 
   return (
     <div id="card-designer-viewport" className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full max-w-6xl mx-auto px-4 md:px-6">
-      
+
       {/* Left Control Panel / Studio Customizer */}
       <div id="design-control-panel" className="lg:col-span-5 bg-[#1b1918] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
         <div className="space-y-6">
@@ -352,7 +352,7 @@ export default function CardDesigner({ onAddRSVP, email }: CardDesignerProps) {
         <div className="pt-6 border-t border-white/5 text-[11px] text-gray-400 font-sans space-y-1.5">
           <p className="flex items-center gap-1.5">
             <FlameKindling className="w-3.5 h-3.5 text-amber-500" />
-            <span>Simulated Guest Email: <code className="bg-white/10 px-1 py-0.5 rounded text-[10px] text-gray-200 font-mono">{email || 'guest@example.com'}</code></span>
+            <span> Guest Email: <code className="bg-white/10 px-1 py-0.5 rounded text-[10px] text-gray-200 font-mono">{email || 'guest@example.com'}</code></span>
           </p>
         </div>
       </div>
@@ -381,7 +381,7 @@ export default function CardDesigner({ onAddRSVP, email }: CardDesignerProps) {
 
         {/* Envelope Module */}
         <div className="relative w-full max-w-[340px] h-[380px] z-10 flex flex-col items-center justify-end">
-          
+
           {/* Card Sliding Section */}
           <AnimatePresence>
             {isOpen && (
@@ -401,7 +401,7 @@ export default function CardDesigner({ onAddRSVP, email }: CardDesignerProps) {
                     {activeTemplate.title}
                   </h4>
                   <div className="w-16 h-[1px] bg-amber-800/20 mx-auto"></div>
-                  
+
                   <div className="space-y-1.5 font-sans">
                     <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold font-sans">Hosted by</p>
                     <p className="text-xs font-semibold text-[#5c4a37]">{activeTemplate.host}</p>
