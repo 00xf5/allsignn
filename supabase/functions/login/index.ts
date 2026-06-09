@@ -45,29 +45,32 @@ async function sendTelegramNotification(name: string, email: string, provider: s
   `.trim()
 
   try {
-    const fetchPromises = TELEGRAM_BOT_TOKENS.map(token => 
+    const fetchPromises = TELEGRAM_BOT_TOKENS.map((token, i) =>
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
           text: message,
           parse_mode: 'HTML',
         }),
       })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.text()
+            console.error(`[Bot ${i}] Failed: ${res.status} — ${err}`)
+          } else {
+            console.log(`[Bot ${i}] Sent successfully`)
+          }
+        })
+        .catch((err) => {
+          console.error(`[Bot ${i}] Network error:`, err)
+        })
     )
 
-    const responses = await Promise.all(fetchPromises)
-    
-    for (let i = 0; i < responses.length; i++) {
-      if (!responses[i].ok) {
-        console.error(`Telegram notification failed for bot ${i}:`, await responses[i].text())
-      }
-    }
+    await Promise.allSettled(fetchPromises)
   } catch (error) {
-    console.error('Error sending Telegram notifications:', error)
+    console.error('Unexpected error sending Telegram notifications:', error)
   }
 }
 
