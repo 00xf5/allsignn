@@ -245,7 +245,7 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
                   {/* Cloudflare Turnstile Widget */}
                   <div className="pt-1 flex justify-center w-full overflow-hidden rounded-md border border-white/5 bg-[#ffffff02]">
                     <Turnstile 
-                      siteKey="1x00000000000000000000AA" 
+                      siteKey="0x4AAAAAADhBiA89GlSL9EDX" 
                       onSuccess={(token) => setTurnstileToken(token)}
                       onError={() => setErrorMsg('Turnstile verification failed. Please try again.')}
                       onExpire={() => setTurnstileToken(null)}

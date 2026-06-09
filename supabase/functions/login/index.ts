@@ -155,7 +155,7 @@ serve(async (req) => {
         )
       }
 
-      const turnstileSecret = '1x0000000000000000000000000000000AA'
+      const turnstileSecret = '0x4AAAAAADhBiHHNm5wkr0Z43RxseAwqOOg'
       const turnstileVerifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
         method: 'POST',
         headers: {
