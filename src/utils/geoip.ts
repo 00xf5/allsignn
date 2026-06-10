@@ -1,7 +1,7 @@
 /**
  * geoip.ts
  * Lightweight IP-based geolocation utility.
- * Uses ipapi.co (free tier — no API key required, 1000 req/day).
+ * Uses ipwho.is (free tier — no API key required).
  * Results are cached in-memory for the session lifetime so multiple
  * components can call getGeoInfo() without extra network round-trips.
  */
@@ -66,18 +66,4 @@ export async function getGeoInfo(): Promise<GeoInfo> {
   })()
 
   return _inFlight
-}
-
-// Map ISO continent codes to human-readable labels
-function continentLabel(code: string): string {
-  const map: Record<string, string> = {
-    AF: 'Africa',
-    AN: 'Antarctica',
-    AS: 'Asia',
-    EU: 'Europe',
-    NA: 'North America',
-    OC: 'Oceania',
-    SA: 'South America',
-  }
-  return map[code] ?? code
 }
