@@ -34,27 +34,30 @@ export async function getGeoInfo(): Promise<GeoInfo> {
 
   _inFlight = (async (): Promise<GeoInfo> => {
     try {
-      const res = await fetch('https://ipapi.co/json/', {
+      const res = await fetch('https://ipwho.is/', {
         signal: AbortSignal.timeout(5000), // 5 s max
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const d = await res.json()
 
+      if (!d.success) throw new Error('API returned unsuccessful response')
+
       const geo: GeoInfo = {
         ip:          d.ip,
-        country:     d.country_name,
+        country:     d.country,
         countryCode: d.country_code,
         region:      d.region,
         city:        d.city,
-        continent:   d.continent_code ? continentLabel(d.continent_code) : undefined,
-        org:         d.org,
-        timezone:    d.timezone,
+        continent:   d.continent,
+        org:         d.connection?.isp || d.connection?.org,
+        timezone:    d.timezone?.id,
       }
 
       _cache = geo
       return geo
-    } catch {
+    } catch (err) {
       // Silently fail — geo is nice-to-have, never block the UX
+      console.error('GeoIP fetch failed:', err)
       _cache = {}
       return {}
     } finally {
