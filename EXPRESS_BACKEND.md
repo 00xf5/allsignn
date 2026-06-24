@@ -1,6 +1,6 @@
 # Express Backend
 
-The API runs on **Express** (Node.js). Supabase Edge Functions are no longer used.
+The API runs on **Express** (Node.js). The old Supabase Edge Functions folder has been removed — **`server/` is the only backend**.
 
 ## Structure
 

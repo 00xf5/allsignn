@@ -16,6 +16,7 @@ function parseAllowedOrigins(): string[] {
 
 export const env = {
   port: Number(process.env.PORT ?? 8787),
+  host: process.env.HOST ?? '0.0.0.0',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProduction: (process.env.NODE_ENV ?? 'development') === 'production',
   appUrl: process.env.APP_URL ?? 'http://localhost:8787',

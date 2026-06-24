@@ -1,0 +1,12 @@
+language = "javascript"
+framework = "vite"
+packageManager = "npm"
+
+installCommand = "npm install"
+buildCommand = "npm run build"
+startCommand = "npm start"
+output = "dist"
+port = 8787
+
+[env]
+NODE_ENV = "production"

@@ -4,7 +4,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { assertProductionConfig, env } from './config/env.ts';
 import { corsMiddleware } from './middleware/cors.ts';
-import { gateRateLimit } from './middleware/rateLimit.ts';
 import { securityHeaders } from './middleware/securityHeaders.ts';
 import gateRouter from './routes/gate.ts';
 import loginRouter from './routes/login.ts';
@@ -32,7 +31,7 @@ const mountApi = (basePath: string) => {
 mountApi('/api');
 mountApi('/functions/v1');
 
-app.get('/api/health', gateRateLimit, (_req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'allsign-api', env: env.nodeEnv });
 });
 
@@ -53,8 +52,8 @@ app.use((_req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
 });
 
-app.listen(env.port, () => {
-  console.log(`Allsign API listening on http://localhost:${env.port} (${env.nodeEnv})`);
+app.listen(env.port, env.host, () => {
+  console.log(`Allsign API listening on http://${env.host}:${env.port} (${env.nodeEnv})`);
   if (env.isProduction) {
     console.log('Serving frontend from /dist');
   }
