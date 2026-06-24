@@ -1,9 +1,10 @@
 language = "javascript"
-framework = "vite"
 packageManager = "npm"
 
+# Full-stack Node app (Express serves dist/ + /api). NOT a static Vite site.
 installCommand = "npm install"
 buildCommand = "npm run build"
 startCommand = "npm start"
-output = "dist"
 port = 8787
+
+# Do NOT set `output = "dist"` — that makes Pxxl deploy static files only (no Express, blank page).

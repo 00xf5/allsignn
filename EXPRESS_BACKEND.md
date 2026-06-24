@@ -54,14 +54,21 @@ Health check: `GET /health` or `GET /api/health`
 
 ## Pxxl deploy
 
+**Symptom:** blank page + `/cdn-cgi/rum` in Network tab → Cloudflare analytics (harmless). Real issue is usually **static deploy without Express**.
+
+Verify in browser: `https://your-app.pxxl.click/health` must return JSON like `{"ok":true,...}`.  
+If it returns HTML with `<script src="/src/main.tsx">`, Pxxl is serving **source files**, not the build.
+
 | Setting | Value |
 |---------|--------|
+| **Project type** | Node.js (not Static Site / not Vite preview-only) |
 | **Port** | `8787` |
 | **Install** | `npm install` |
 | **Build** | `npm run build` |
 | **Start** | `npm start` |
+| **Output directory** | leave empty — Express serves `dist/` internally |
 
-Do **not** use `npm run dev` or `npm run preview` — those skip Express.
+Do **not** use `npm run dev`, `npm run preview`, or a static-only `dist` output.
 
 Set env vars in the Pxxl dashboard:
 
