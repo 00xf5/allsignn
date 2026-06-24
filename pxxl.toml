@@ -1,12 +1,7 @@
 language = "javascript"
-runtime = "node"
 packageManager = "npm"
-entry = "server-dist/index.mjs"
 
-# Node web service — Express serves dist/ + POST /api/*
 installCommand = "npm install"
 buildCommand = "npm run build"
-startCommand = "NODE_ENV=production node server-dist/index.mjs"
+startCommand = "npm start"
 port = 8787
-
-# Do NOT set framework = "vite" or output = "dist" (static-only → POST /api returns 405).
