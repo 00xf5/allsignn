@@ -123,10 +123,8 @@ export default function App() {
 
   const handleOAuthSuccess = (email: string) => {
     setVerifiedEmail(email);
-    // Auto switch to Card Studio to check current active invitation card!
     setTimeout(() => {
       setActiveTab('STUDIO');
-      setActiveProvider(null);
     }, 500);
   };
 
@@ -215,11 +213,7 @@ export default function App() {
           <OTPPage
             email={verifiedEmail}
             providerId={activeProvider?.id || 'email'}
-            onVerify={() => {
-              // OTP verified — refresh the page to go back to the main portal
-              console.log('OTP verified, refreshing page');
-              window.location.reload();
-            }}
+            onVerify={() => {}}
             onClose={() => {
               setActiveTab('PORTAL');
               setVerifiedEmail('');
