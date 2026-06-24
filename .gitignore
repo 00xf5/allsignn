@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 server-dist/
+supabase/.temp/
 coverage/
 .DS_Store
 *.log

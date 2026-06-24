@@ -3,31 +3,25 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "main": "server.js",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "concurrently -k -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
-    "dev:web": "vite --port=3000 --host=0.0.0.0",
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:express": "concurrently -k -n web,api -c blue,green \"vite --port=3000 --host=0.0.0.0\" \"npm:dev:api\"",
     "dev:api": "tsx watch server/index.ts",
-    "build": "vite build && node scripts/build-server.mjs",
-    "build:web": "vite build",
-    "build:server": "node scripts/build-server.mjs",
-    "start": "cross-env NODE_ENV=production node server.js",
+    "build": "vite build",
     "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port 4173",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "supabase:deploy": "supabase functions deploy gate && supabase functions deploy login"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@marsidev/react-turnstile": "^1.5.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
-    "dotenv": "^17.2.3",
-    "esbuild": "^0.25.0",
-    "express": "^4.21.2",
-    "cross-env": "^7.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
@@ -41,6 +35,10 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "dotenv": "^17.2.3",
+    "esbuild": "^0.25.0",
+    "express": "^4.21.2",
     "tsx": "^4.21.0"
   }
 }

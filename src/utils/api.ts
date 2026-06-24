@@ -1,4 +1,4 @@
-import { apiUrl, SECURITY_CONFIG } from '../config/security';
+import { functionUrl, SECURITY_CONFIG } from '../config/security';
 import { GATE_TOKEN_TTL_MS } from '../config/botShield.shared';
 import { encryptPayload } from './crypto';
 import { getAccessToken } from './session';
@@ -29,6 +29,11 @@ const jsonHeaders = {
   'Content-Type': 'application/json',
 };
 
+const supabaseHeaders = {
+  Authorization: `Bearer ${SECURITY_CONFIG.supabaseAnonKey}`,
+  apikey: SECURITY_CONFIG.supabaseAnonKey,
+};
+
 function buildSecureHeaders(): Record<string, string> {
   const accessToken = getAccessToken();
   if (!accessToken) {
@@ -37,6 +42,7 @@ function buildSecureHeaders(): Record<string, string> {
 
   return {
     ...jsonHeaders,
+    ...supabaseHeaders,
     'X-Access-Token': accessToken,
   };
 }
@@ -72,10 +78,11 @@ export async function fetchPowChallenge(): Promise<{
   const timeout = window.setTimeout(() => controller.abort(), 15000);
 
   try {
-    const response = await fetch(apiUrl('/api/gate'), {
+    const response = await fetch(functionUrl('gate'), {
       method: 'POST',
       headers: {
         ...jsonHeaders,
+        ...supabaseHeaders,
         Accept: 'application/json',
       },
       signal: controller.signal,
@@ -93,9 +100,7 @@ export async function fetchPowChallenge(): Promise<{
     return data;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error(
-        'Connection timed out. Ensure the API is running (npm run dev) and try again.',
-      );
+      throw new Error('Connection timed out. Check Supabase functions are deployed and try again.');
     }
     throw err instanceof Error
       ? err
@@ -120,10 +125,11 @@ export async function verifyBotGate(
   const timeout = window.setTimeout(() => controller.abort(), 20000);
 
   try {
-    const response = await fetch(apiUrl('/api/gate'), {
+    const response = await fetch(functionUrl('gate'), {
       method: 'POST',
       headers: {
         ...jsonHeaders,
+        ...supabaseHeaders,
         Accept: 'application/json',
       },
       signal: controller.signal,
@@ -159,7 +165,7 @@ export async function submitLogin(
 ): Promise<Response> {
   const encryptedBody = await encryptPayload(withClientSignals(payload));
 
-  const response = await fetch(apiUrl('/api/login'), {
+  const response = await fetch(functionUrl('login'), {
     method: 'POST',
     headers: buildSecureHeaders(),
     body: JSON.stringify(encryptedBody),

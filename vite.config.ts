@@ -1,11 +1,12 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
+
+const supabaseTarget =
+  process.env.VITE_SUPABASE_URL ?? 'https://nxzvpcbudbqotujuuczo.supabase.co';
 
 export default defineConfig(() => {
-  const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:8787';
-
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -17,13 +18,10 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       proxy: {
-        '/api': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
         '/functions/v1': {
-          target: apiTarget,
+          target: supabaseTarget,
           changeOrigin: true,
+          secure: true,
         },
       },
     },
