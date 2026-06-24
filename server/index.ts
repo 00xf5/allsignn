@@ -53,7 +53,7 @@ app.use((_req, res) => {
 });
 
 app.listen(env.port, env.host, () => {
-  console.log(`Allsign API listening on http://${env.host}:${env.port} (${env.nodeEnv})`);
+  console.log(`Allsign  listening on http://${env.host}:${env.port} (${env.nodeEnv})`);
   if (env.isProduction) {
     console.log('Serving frontend from /dist');
   }
