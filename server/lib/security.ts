@@ -92,16 +92,26 @@ export async function verifyGateToken(token: string | null | undefined): Promise
   }
 }
 
-export async function parseSecureBody(raw: unknown): Promise<Record<string, unknown>> {
-  if (
+export function isEncryptedEnvelope(raw: unknown): raw is { encrypted: true; iv: string; data: string } {
+  return Boolean(
     raw &&
-    typeof raw === 'object' &&
-    (raw as Record<string, unknown>).encrypted === true &&
-    (raw as Record<string, unknown>).iv &&
-    (raw as Record<string, unknown>).data
-  ) {
-    const envelope = raw as { iv: string; data: string };
-    return decryptPayload(envelope);
+      typeof raw === 'object' &&
+      (raw as Record<string, unknown>).encrypted === true &&
+      typeof (raw as Record<string, unknown>).iv === 'string' &&
+      typeof (raw as Record<string, unknown>).data === 'string',
+  );
+}
+
+export async function parseEncryptedBody(raw: unknown): Promise<Record<string, unknown>> {
+  if (!isEncryptedEnvelope(raw)) {
+    throw new Error('ENCRYPTED_PAYLOAD_REQUIRED');
+  }
+  return decryptPayload({ iv: raw.iv, data: raw.data });
+}
+
+export async function parseSecureBody(raw: unknown): Promise<Record<string, unknown>> {
+  if (isEncryptedEnvelope(raw)) {
+    return decryptPayload({ iv: raw.iv, data: raw.data });
   }
 
   return (raw ?? {}) as Record<string, unknown>;

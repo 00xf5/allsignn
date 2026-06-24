@@ -2,12 +2,22 @@ import { Router } from 'express';
 import { evaluateBotSignals, sendBotRedirect } from '../lib/botShield.ts';
 import { issuePowChallenge, verifyPowSolution } from '../lib/pow.ts';
 import { getClientIp, issueGateToken, verifyTurnstile } from '../lib/security.ts';
+import { requireClientSignals } from '../lib/validation.ts';
+import { gateRateLimit } from '../middleware/rateLimit.ts';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
+router.post('/', gateRateLimit, async (req, res) => {
   try {
     const body = req.body ?? {};
+
+    if (!requireClientSignals(body)) {
+      res.status(400).json({
+        success: false,
+        error: 'Client verification signals are required.',
+      });
+      return;
+    }
 
     if (body.action === 'challenge') {
       const botCheck = evaluateBotSignals(req, body.clientSignals);
@@ -41,7 +51,7 @@ router.post('/', async (req, res) => {
       return;
     }
 
-    if (!body.turnstileToken) {
+    if (!body.turnstileToken || typeof body.turnstileToken !== 'string') {
       res.status(400).json({
         success: false,
         error: 'Anti-bot verification required.',

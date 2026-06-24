@@ -34,7 +34,7 @@ function matchesBotUserAgent(userAgent: string): boolean {
 }
 
 function hasAutomationGlobals(): boolean {
-  const windowAny = window as Window & Record<string, unknown>;
+  const windowAny = window as unknown as Record<string, unknown>;
   return Boolean(
     windowAny.__webdriver_evaluate ||
       windowAny.__selenium_evaluate ||
