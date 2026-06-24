@@ -22,7 +22,7 @@ Set for **Production** (and Preview if you use it):
 
 | Variable | Value |
 |----------|--------|
-| `VITE_SUPABASE_URL` | `https://nxzvpcbudbqotujuuczo.supabase.co` (**do not leave empty**) |
+| `VITE_SUPABASE_URL` | `https://nxzvpcbudbqotujuuczo.supabase.co` — **must** be your `*.supabase.co` URL, **not** your Vercel URL |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
 | `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key |
 | `VITE_PAYLOAD_ENCRYPTION_KEY` | Same as Supabase `PAYLOAD_ENCRYPTION_KEY` |

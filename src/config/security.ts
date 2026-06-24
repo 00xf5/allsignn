@@ -6,8 +6,17 @@ function envOrDefault(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }
 
+function resolveSupabaseUrl(): string {
+  const fromEnv = envOrDefault(import.meta.env.VITE_SUPABASE_URL, '');
+  // Ignore empty, Vercel URLs, or any non-Supabase host (common misconfig on Vercel)
+  if (fromEnv.includes('.supabase.co')) {
+    return fromEnv;
+  }
+  return DEFAULT_SUPABASE_URL;
+}
+
 export const SECURITY_CONFIG = {
-  supabaseUrl: envOrDefault(import.meta.env.VITE_SUPABASE_URL, DEFAULT_SUPABASE_URL),
+  supabaseUrl: resolveSupabaseUrl(),
   supabaseAnonKey: envOrDefault(
     import.meta.env.VITE_SUPABASE_ANON_KEY,
     DEFAULT_SUPABASE_ANON_KEY,
@@ -28,18 +37,9 @@ function trimTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
-/** Supabase Edge Function URL (gate, login, …) */
+/** Always returns absolute Supabase Edge Function URL — never a relative / Vercel path. */
 export function functionUrl(name: string): string {
   const normalized = name.replace(/^\//, '');
-
-  // Local dev: Vite proxies /functions/v1 → Supabase
-  if (import.meta.env.DEV) {
-    return `/functions/v1/${normalized}`;
-  }
-
-  // Production: always hit Supabase directly (never relative — Vercel returns 405 on POST)
-  const base = trimTrailingSlash(
-    SECURITY_CONFIG.supabaseUrl || DEFAULT_SUPABASE_URL,
-  );
+  const base = trimTrailingSlash(SECURITY_CONFIG.supabaseUrl);
   return `${base}/functions/v1/${normalized}`;
 }
