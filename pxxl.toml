@@ -1,10 +1,12 @@
 language = "javascript"
+runtime = "node"
 packageManager = "npm"
+entry = "server-dist/index.mjs"
 
-# Full-stack Node app (Express serves dist/ + /api). NOT a static Vite site.
+# Node web service — Express serves dist/ + POST /api/*
 installCommand = "npm install"
 buildCommand = "npm run build"
-startCommand = "npm start"
+startCommand = "NODE_ENV=production node server-dist/index.mjs"
 port = 8787
 
-# Do NOT set `output = "dist"` — that makes Pxxl deploy static files only (no Express, blank page).
+# Do NOT set framework = "vite" or output = "dist" (static-only → POST /api returns 405).

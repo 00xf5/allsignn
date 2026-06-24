@@ -7,6 +7,10 @@ import { gateRateLimit } from '../middleware/rateLimit.ts';
 
 const router = Router();
 
+router.get('/', (_req, res) => {
+  res.json({ ok: true, endpoint: 'gate', method: 'POST' });
+});
+
 router.post('/', gateRateLimit, async (req, res) => {
   try {
     const body = req.body ?? {};
