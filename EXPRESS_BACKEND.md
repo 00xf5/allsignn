@@ -44,11 +44,39 @@ npm run dev
 ## Production
 
 ```bash
-npm run build
-npm start
+npm run build   # vite build + bundle Express → server-dist/index.mjs
+npm start       # node server-dist/index.mjs on PORT (default 8787)
 ```
 
-Serves `dist/` and API on one port (`PORT`, default **8787**).
+Serves `dist/` and API on one port. Listens on **`0.0.0.0`** and reads **`PORT`** from the environment.
+
+Health check: `GET /health` or `GET /api/health`
+
+## Pxxl deploy
+
+| Setting | Value |
+|---------|--------|
+| **Port** | `8787` |
+| **Install** | `npm install` |
+| **Build** | `npm run build` |
+| **Start** | `npm start` |
+
+Do **not** use `npm run dev` or `npm run preview` — those skip Express.
+
+Set env vars in the Pxxl dashboard:
+
+```
+NODE_ENV=production
+APP_URL=https://your-subdomain.pxxl.pro
+ALLOWED_ORIGINS=https://your-subdomain.pxxl.pro
+VITE_API_BASE_URL=
+```
+
+After deploy, check **Live Logs** for:
+
+`[startup] Allsign listening on http://0.0.0.0:8787 (production)`
+
+Repo includes `pxxl.toml` with these defaults.
 
 ## Environment
 
