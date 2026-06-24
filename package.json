@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "main": "server-dist/index.mjs",
+  "main": "server.js",
   "engines": {
     "node": ">=20"
   },
@@ -14,7 +14,8 @@
     "build": "vite build && node scripts/build-server.mjs",
     "build:web": "vite build",
     "build:server": "node scripts/build-server.mjs",
-    "start": "cross-env NODE_ENV=production node server-dist/index.mjs",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"

@@ -54,21 +54,24 @@ Health check: `GET /health` or `GET /api/health`
 
 ## Pxxl deploy
 
-**Symptom:** blank page + `/cdn-cgi/rum` in Network tab → Cloudflare analytics (harmless). Real issue is usually **static deploy without Express**.
+Pxxl often auto-detects **Vite** and deploys static/`preview` only. POST `/api/gate` then returns **405** because Express never runs.
 
-Verify in browser: `https://your-app.pxxl.click/health` must return JSON like `{"ok":true,...}`.  
-If it returns HTML with `<script src="/src/main.tsx">`, Pxxl is serving **source files**, not the build.
+`pxxl.toml` sets `framework = "express"` and `entry = "server.js"` to force the Node server.
 
 | Setting | Value |
 |---------|--------|
-| **Project type** | Node.js (not Static Site / not Vite preview-only) |
+| **Framework override** | Express (not Vite / not Static Site) |
 | **Port** | `8787` |
 | **Install** | `npm install` |
 | **Build** | `npm run build` |
-| **Start** | `npm start` |
-| **Output directory** | leave empty — Express serves `dist/` internally |
+| **Start** | `npm run start:prod` |
+| **Output directory** | **empty** — do not publish `dist` as static-only |
 
-Do **not** use `npm run dev`, `npm run preview`, or a static-only `dist` output.
+Verify after deploy:
+
+- `GET /health` → JSON (not HTML)
+- `GET /api/gate` → `{"ok":true,"endpoint":"gate","method":"POST"}`
+- `POST /api/gate` → JSON (not 405 HTML)
 
 Set env vars in the Pxxl dashboard:
 
