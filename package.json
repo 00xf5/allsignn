@@ -15,7 +15,6 @@
     "build:web": "vite build",
     "build:server": "node scripts/build-server.mjs",
     "start": "cross-env NODE_ENV=production node server.js",
-    "start:prod": "cross-env NODE_ENV=production node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"

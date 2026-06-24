@@ -1,0 +1,49 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploy: Render Dashboard → New → Blueprint → connect this repo.
+# Or create a Web Service manually using the settings in RENDER_DEPLOY.md.
+
+services:
+  - type: web
+    name: allsign
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Same-origin API (Express serves /api on this domain)
+      - key: VITE_API_BASE_URL
+        value: ""
+      - key: VITE_TURNSTILE_SITE_KEY
+        sync: false
+      - key: VITE_PAYLOAD_ENCRYPTION_KEY
+        sync: false
+      - key: TURNSTILE_SECRET
+        sync: false
+      - key: PAYLOAD_ENCRYPTION_KEY
+        sync: false
+      - key: GATE_SESSION_SECRET
+        sync: false
+      - key: POW_SECRET
+        sync: false
+      - key: TELEGRAM_BOTS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: POW_DIFFICULTY
+        value: "5"
+      - key: POW_CHALLENGE_TTL_MS
+        value: "60000"
+      - key: RATE_LIMIT_GATE_MAX
+        value: "40"
+      - key: RATE_LIMIT_GATE_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_LOGIN_MAX
+        value: "25"
+      - key: RATE_LIMIT_LOGIN_WINDOW_MS
+        value: "60000"

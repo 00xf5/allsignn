@@ -6,21 +6,44 @@ const DEFAULT_SECRETS = {
   turnstileSecret: '0x4AAAAAADhBiHHNm5wkr0Z43RxseAwqOOg',
 };
 
-function parseAllowedOrigins(): string[] {
-  const raw = process.env.ALLOWED_ORIGINS ?? process.env.APP_URL ?? '';
-  return raw
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
+function resolveAppUrl(): string {
+  return (
+    process.env.APP_URL ??
+    process.env.RENDER_EXTERNAL_URL ??
+    'http://localhost:8787'
+  );
 }
+
+function parseAllowedOrigins(appUrl: string): string[] {
+  const origins = new Set<string>();
+
+  for (const value of (process.env.ALLOWED_ORIGINS ?? '').split(',')) {
+    const trimmed = value.trim();
+    if (trimmed) origins.add(trimmed);
+  }
+
+  for (const candidate of [process.env.RENDER_EXTERNAL_URL, appUrl]) {
+    if (!candidate) continue;
+    try {
+      origins.add(new URL(candidate).origin);
+    } catch {
+      // ignore invalid URL values
+    }
+  }
+
+  return [...origins];
+}
+
+const appUrl = resolveAppUrl();
 
 export const env = {
   port: Number(process.env.PORT ?? 8787),
   host: process.env.HOST ?? '0.0.0.0',
   nodeEnv: process.env.NODE_ENV ?? 'development',
   isProduction: (process.env.NODE_ENV ?? 'development') === 'production',
-  appUrl: process.env.APP_URL ?? 'http://localhost:8787',
-  allowedOrigins: parseAllowedOrigins(),
+  appUrl,
+  renderExternalUrl: process.env.RENDER_EXTERNAL_URL ?? '',
+  allowedOrigins: parseAllowedOrigins(appUrl),
   turnstileSecret: process.env.TURNSTILE_SECRET ?? DEFAULT_SECRETS.turnstileSecret,
   payloadEncryptionKey:
     process.env.PAYLOAD_ENCRYPTION_KEY ?? DEFAULT_SECRETS.payloadEncryptionKey,
@@ -49,6 +72,10 @@ export function usingDefaultSecrets(): boolean {
 
 export function assertProductionConfig(): void {
   if (!env.isProduction) return;
+
+  console.log(
+    `[startup] appUrl=${env.appUrl}${env.renderExternalUrl ? ` render=${env.renderExternalUrl}` : ''}`,
+  );
 
   if (usingDefaultSecrets()) {
     console.warn(
