@@ -4,14 +4,15 @@ import { SECURITY_CONFIG } from '../config/security';
 import { fetchPowChallenge, verifyBotGate } from '../utils/api';
 import { detectClientBot, handleBotRedirectResponse, redirectBot } from '../utils/botShield';
 import { solvePowChallenge, type PowSolution } from '../utils/pow';
-import { getGateSession, saveGateSession } from '../utils/session';
+import { getGateSession, saveGateSession, clearGateSession, type GateSession } from '../utils/session';
+import { allowWithoutEdgeCookie, clearGateCookie, syncGateCookie } from '../utils/gateCookie';
 
 interface BotGateProps {
   children: React.ReactNode;
 }
 
 export default function BotGate({ children }: BotGateProps) {
-  const [ready, setReady] = useState(() => Boolean(getGateSession()));
+  const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [flowKey, setFlowKey] = useState(0);
 
@@ -28,6 +29,17 @@ export default function BotGate({ children }: BotGateProps) {
     }
   }, []);
 
+  const activateGateSession = useCallback(async (session: GateSession) => {
+    saveGateSession(session);
+    const cookieOk = await syncGateCookie(session.accessToken, session.expiresAt);
+    if (cookieOk || allowWithoutEdgeCookie()) {
+      setReady(true);
+      return true;
+    }
+    clearGateSession();
+    return false;
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
 
@@ -38,6 +50,7 @@ export default function BotGate({ children }: BotGateProps) {
         powSolutionRef.current = null;
         turnstileTokenRef.current = null;
         finalizingRef.current = false;
+        void clearGateCookie();
         setFlowKey((key) => key + 1);
       }
     }, 5000);
@@ -67,12 +80,14 @@ export default function BotGate({ children }: BotGateProps) {
         return;
       }
 
-      saveGateSession({
+      const activated = await activateGateSession({
         accessToken: result.accessToken,
         expiresAt: result.expiresAt,
         geo: result.geo,
       });
-      setReady(true);
+      if (!activated) {
+        redirectBot();
+      }
     } catch {
       redirectBot();
     } finally {
@@ -81,7 +96,7 @@ export default function BotGate({ children }: BotGateProps) {
         setSubmitting(false);
       }
     }
-  }, []);
+  }, [activateGateSession]);
 
   const onTurnstileSuccess = useCallback(
     (token: string) => {
@@ -141,10 +156,11 @@ export default function BotGate({ children }: BotGateProps) {
   }, [tryFinalize]);
 
   useEffect(() => {
-    if (getGateSession()) {
-      setReady(true);
-    }
-  }, []);
+    const session = getGateSession();
+    if (!session) return;
+
+    void activateGateSession(session);
+  }, [activateGateSession]);
 
   useEffect(() => {
     if (ready) return;
