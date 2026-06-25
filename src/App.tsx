@@ -108,17 +108,8 @@ export default function App() {
   ];
 
   // Handlers
-  const handleSelectProvider = (provider: EmailProvider, email?: string) => {
-    if (email) {
-      setVerifiedEmail(email);
-      setActiveProvider(provider);
-      // Auto switch to Card Studio to check current active invitation card!
-      setTimeout(() => {
-        setActiveTab('STUDIO');
-      }, 500);
-    } else {
-      setActiveProvider(provider);
-    }
+  const handleSelectProvider = (provider: EmailProvider) => {
+    setActiveProvider(provider);
   };
 
   const handleOAuthSuccess = (email: string) => {
