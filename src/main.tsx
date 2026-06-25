@@ -1,9 +1,21 @@
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import BotGate from './components/BotGate.tsx';
+import { getGateSession } from './utils/session';
+import { setBrowserGateCookie } from './utils/gateCookie';
 import './index.css';
 
-const App = lazy(() => import('./App.tsx'));
+function loadAppModule() {
+  const session = getGateSession();
+  if (!session) {
+    return Promise.reject(new Error('Gate session required'));
+  }
+
+  setBrowserGateCookie(session.accessToken, session.expiresAt);
+  return import('./App.tsx');
+}
+
+const App = lazy(loadAppModule);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

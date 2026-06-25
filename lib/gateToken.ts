@@ -57,12 +57,11 @@ export function clearGateCookieHeader(): string {
   return `${GATE_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
-/** Vite app chunks — require gate cookie. Bootstrap chunks stay public. */
+/** Public without gate cookie — bootstrap + styles only (not lazy app chunks). */
 export function isPublicAssetPath(pathname: string): boolean {
   const file = pathname.split('/').pop() ?? '';
   if (!file) return true;
   if (file.startsWith('index-')) return true;
-  if (file.startsWith('gate-')) return true;
   if (file.endsWith('.css')) return true;
   return false;
 }

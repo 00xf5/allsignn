@@ -5,14 +5,15 @@ export const config = {
 };
 
 export default async function middleware(request: Request): Promise<Response> {
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
+  const { pathname } = url;
 
   if (!pathname.startsWith('/assets/') || isPublicAssetPath(pathname)) {
     return fetch(request);
   }
 
-  const token = readCookie(request.headers.get('cookie'), GATE_COOKIE_NAME);
-  if (!(await verifyGateToken(token))) {
+  const cookieToken = readCookie(request.headers.get('cookie'), GATE_COOKIE_NAME);
+  if (!(await verifyGateToken(cookieToken))) {
     return new Response('Forbidden', { status: 403 });
   }
 

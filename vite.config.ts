@@ -27,15 +27,6 @@ export default defineConfig(() => {
     },
     build: {
       modulePreload: false,
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('/src/App.tsx')) {
-              return 'app';
-            }
-          },
-        },
-      },
     },
   };
 });
