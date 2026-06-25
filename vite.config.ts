@@ -6,22 +6,9 @@ import { defineConfig } from 'vite';
 const supabaseTarget =
   process.env.VITE_SUPABASE_URL ?? 'https://nxzvpcbudbqotujuuczo.supabase.co';
 
-/** Vite adds crossorigin to module scripts; that disables cookies on dynamic imports. */
-function stripCrossoriginPlugin() {
-  return {
-    name: 'strip-crossorigin',
-    transformIndexHtml: {
-      order: 'post' as const,
-      handler(html: string) {
-        return html.replace(/\s+crossorigin/g, '');
-      },
-    },
-  };
-}
-
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), stripCrossoriginPlugin()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -37,9 +24,6 @@ export default defineConfig(() => {
           secure: true,
         },
       },
-    },
-    build: {
-      modulePreload: false,
     },
   };
 });

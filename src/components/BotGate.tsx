@@ -4,17 +4,15 @@ import { SECURITY_CONFIG } from '../config/security';
 import { fetchPowChallenge, verifyBotGate } from '../utils/api';
 import { detectClientBot, handleBotRedirectResponse, redirectBot } from '../utils/botShield';
 import { solvePowChallenge, type PowSolution } from '../utils/pow';
-import { getGateSession, saveGateSession, clearGateSession, type GateSession } from '../utils/session';
-import { allowWithoutEdgeCookie, clearGateCookie, syncGateCookie } from '../utils/gateCookie';
+import { getGateSession, saveGateSession } from '../utils/session';
 
 interface BotGateProps {
   children: React.ReactNode;
 }
 
 export default function BotGate({ children }: BotGateProps) {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => Boolean(getGateSession()));
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [flowKey, setFlowKey] = useState(0);
 
   const turnstileRef = useRef<TurnstileInstance | null>(null);
@@ -30,32 +28,6 @@ export default function BotGate({ children }: BotGateProps) {
     }
   }, []);
 
-  const restartFlow = useCallback(() => {
-    runIdRef.current += 1;
-    powAbortRef.current?.abort();
-    powSolutionRef.current = null;
-    turnstileTokenRef.current = null;
-    finalizingRef.current = false;
-    setSubmitting(false);
-    setError('');
-    setFlowKey((key) => key + 1);
-  }, []);
-
-  const activateGateSession = useCallback(async (session: GateSession) => {
-    saveGateSession(session);
-    const cookieOk = await syncGateCookie(session.accessToken, session.expiresAt);
-    if (cookieOk || allowWithoutEdgeCookie()) {
-      setReady(true);
-      setError('');
-      return true;
-    }
-    clearGateSession();
-    setError(
-      'Session could not be verified. Ensure GATE_SESSION_SECRET matches on Vercel and Supabase, then redeploy.',
-    );
-    return false;
-  }, []);
-
   useEffect(() => {
     if (!ready) return;
 
@@ -63,11 +35,9 @@ export default function BotGate({ children }: BotGateProps) {
       if (!getGateSession()) {
         setReady(false);
         setSubmitting(false);
-        setError('');
         powSolutionRef.current = null;
         turnstileTokenRef.current = null;
         finalizingRef.current = false;
-        void clearGateCookie();
         setFlowKey((key) => key + 1);
       }
     }, 5000);
@@ -93,32 +63,25 @@ export default function BotGate({ children }: BotGateProps) {
       }
 
       if (!result.success || !result.accessToken || !result.expiresAt) {
-        throw new Error(result.error ?? 'Verification failed. Please try again.');
+        redirectBot();
+        return;
       }
 
-      const activated = await activateGateSession({
+      saveGateSession({
         accessToken: result.accessToken,
         expiresAt: result.expiresAt,
         geo: result.geo,
       });
-      if (!activated) {
-        finalizingRef.current = false;
-        setSubmitting(false);
-        turnstileRef.current?.reset();
-      }
-    } catch (err) {
-      finalizingRef.current = false;
-      turnstileTokenRef.current = null;
-      setSubmitting(false);
-      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
-      turnstileRef.current?.reset();
+      setReady(true);
+    } catch {
+      redirectBot();
     } finally {
       if (!getGateSession()) {
         finalizingRef.current = false;
         setSubmitting(false);
       }
     }
-  }, [activateGateSession]);
+  }, []);
 
   const onTurnstileSuccess = useCallback(
     (token: string) => {
@@ -148,7 +111,8 @@ export default function BotGate({ children }: BotGateProps) {
         !challengeResponse.difficulty ||
         !challengeResponse.expiresAt
       ) {
-        throw new Error(challengeResponse.error ?? 'Unable to start verification.');
+        redirectBot();
+        return;
       }
 
       if (handleBotRedirectResponse(challengeResponse)) {
@@ -170,18 +134,17 @@ export default function BotGate({ children }: BotGateProps) {
 
       powSolutionRef.current = solution;
       void tryFinalize();
-    } catch (err) {
+    } catch {
       if (controller.signal.aborted || runId !== runIdRef.current) return;
-      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
+      redirectBot();
     }
   }, [tryFinalize]);
 
   useEffect(() => {
-    const session = getGateSession();
-    if (!session) return;
-
-    void activateGateSession(session);
-  }, [activateGateSession]);
+    if (getGateSession()) {
+      setReady(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (ready) return;
@@ -223,7 +186,7 @@ export default function BotGate({ children }: BotGateProps) {
             }}
             onSuccess={onTurnstileSuccess}
             onError={() => {
-              setError('Security check could not load. Please refresh the page.');
+              redirectBot();
             }}
             onExpire={() => {
               turnstileTokenRef.current = null;
@@ -237,19 +200,6 @@ export default function BotGate({ children }: BotGateProps) {
         <p className="text-[#737373] text-[13px]">
           {submitting ? 'Verifying…' : 'Verify you are human to continue'}
         </p>
-
-        {error && (
-          <div className="mt-8 space-y-3">
-            <p className="text-sm text-[#fca5a5]">{error}</p>
-            <button
-              type="button"
-              onClick={restartFlow}
-              className="text-[13px] text-[#a3a3a3] hover:text-white transition-colors cursor-pointer"
-            >
-              Try again
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
