@@ -1,11 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": {
-    "api/session.ts": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
   ]
