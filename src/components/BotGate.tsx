@@ -50,7 +50,9 @@ export default function BotGate({ children }: BotGateProps) {
       return true;
     }
     clearGateSession();
-    setError('Could not start a secure session. Please try again.');
+    setError(
+      'Session could not be verified. Ensure GATE_SESSION_SECRET matches on Vercel and Supabase, then redeploy.',
+    );
     return false;
   }, []);
 

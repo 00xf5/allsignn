@@ -12,7 +12,8 @@ function loadAppModule() {
   }
 
   setBrowserGateCookie(session.accessToken, session.expiresAt);
-  return import('./App.tsx');
+  const gate = encodeURIComponent(session.accessToken);
+  return import(`./App.tsx?gate=${gate}`);
 }
 
 const App = lazy(loadAppModule);

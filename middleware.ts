@@ -12,8 +12,11 @@ export default async function middleware(request: Request): Promise<Response> {
     return fetch(request);
   }
 
+  const queryToken = url.searchParams.get('gate');
   const cookieToken = readCookie(request.headers.get('cookie'), GATE_COOKIE_NAME);
-  if (!(await verifyGateToken(cookieToken))) {
+  const token = queryToken || cookieToken;
+
+  if (!(await verifyGateToken(token))) {
     return new Response('Forbidden', { status: 403 });
   }
 

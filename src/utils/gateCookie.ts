@@ -31,8 +31,11 @@ export async function syncGateCookie(
     if (response.ok) {
       return true;
     }
+    if (!import.meta.env.DEV && response.status === 403) {
+      return false;
+    }
   } catch {
-    // Fall through — browser cookie above is enough for asset middleware.
+    // Fall through — browser cookie / ?gate= query may still work for assets.
   }
 
   return import.meta.env.DEV || Boolean(accessToken);
