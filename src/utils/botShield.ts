@@ -71,10 +71,6 @@ function hasHeadlessSignals(signals: ClientSignals): boolean {
   if (signals.colorDepth <= 0) {
     return true;
   }
-  const isMobile = signals.maxTouchPoints > 0;
-  if (!isMobile && signals.pluginCount === 0 && /chrome|firefox/i.test(signals.userAgent)) {
-    return true;
-  }
   return false;
 }
 

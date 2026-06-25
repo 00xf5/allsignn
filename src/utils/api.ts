@@ -93,10 +93,15 @@ export async function fetchPowChallenge(): Promise<{
     });
 
     const data = await response.json();
+
+    if (handleBotRedirectResponse(data)) {
+      return data;
+    }
+
     if (!response.ok) {
       throw new Error(data.error ?? `Security service unavailable (${response.status}).`);
     }
-    handleBotRedirectResponse(data);
+
     return data;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
@@ -142,11 +147,20 @@ export async function verifyBotGate(
 
     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error ?? `Verification failed (${response.status}). Please try again.`);
+    if (handleBotRedirectResponse(data)) {
+      return data;
     }
 
-    handleBotRedirectResponse(data);
+    if (!response.ok) {
+      const detail =
+        typeof data.reason === 'string' && data.reason
+          ? ` (${data.reason})`
+          : '';
+      throw new Error(
+        (data.error ?? `Verification failed (${response.status}). Please try again.`) + detail,
+      );
+    }
+
     return data;
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {

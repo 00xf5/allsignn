@@ -15,15 +15,17 @@ import {
   verifyTurnstile,
 } from '../_shared/security.ts';
 
-async function runBotChecks(req: Request, clientSignals: unknown) {
+async function runBotChecks(req: Request, clientSignals: unknown, checkIp = true) {
   const botCheck = evaluateBotSignals(req, clientSignals);
   if (botCheck.isBot) {
     return botRedirectResponse(botCheck.reason);
   }
 
-  const ipCheck = await evaluateIpThreat(req);
-  if (ipCheck.isBot) {
-    return botRedirectResponse(ipCheck.reason);
+  if (checkIp) {
+    const ipCheck = await evaluateIpThreat(req);
+    if (ipCheck.isBot) {
+      return botRedirectResponse(ipCheck.reason);
+    }
   }
 
   return null;
@@ -49,7 +51,7 @@ serve(async (req) => {
     }
 
     if (body?.action === 'challenge') {
-      const blocked = await runBotChecks(req, body.clientSignals);
+      const blocked = await runBotChecks(req, body.clientSignals, false);
       if (blocked) return blocked;
       return powChallengeResponse();
     }
@@ -76,10 +78,16 @@ serve(async (req) => {
       );
     }
 
-    const clientIp = getClientIp(req);
-    const verified = await verifyTurnstile(body.turnstileToken, clientIp);
+    const verified = await verifyTurnstile(body.turnstileToken);
     if (!verified) {
-      return botRedirectResponse('failed-turnstile');
+      return jsonResponse(
+        {
+          success: false,
+          error: 'Security check failed. Please complete the checkbox and try again.',
+          reason: 'failed-turnstile',
+        },
+        403,
+      );
     }
 
     const session = await issueGateToken();

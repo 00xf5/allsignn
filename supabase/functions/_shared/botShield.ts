@@ -127,39 +127,14 @@ export const BOT_UA_PATTERNS = [
 
 const BLOCKED_ORG_KEYWORDS = [
   'amazon web services',
-  'amazon data services',
-  'google cloud',
+  'google cloud platform',
   'microsoft azure',
   'digitalocean',
-  'linode',
-  'ovh',
   'hetzner',
+  'linode',
   'vultr',
-  'choopa',
-  'leaseweb',
-  'psychz',
-  'm247',
-  'hostinger',
-  'contabo',
-  'scaleway',
   'oracle cloud',
   'alibaba cloud',
-  'tencent cloud',
-  'datacamp',
-  'datacenter',
-  'data center',
-  'hosting',
-  'server hosting',
-  'cloud server',
-  'colocation',
-  'tor exit',
-  'mullvad',
-  'nordvpn',
-  'expressvpn',
-  'protonvpn',
-  'surfshark',
-  'cyberghost',
-  'private internet access',
 ];
 
 export interface ClientSignals {
@@ -184,6 +159,10 @@ export interface ClientSignals {
 export function pickBotRedirect(): string {
   const index = Math.floor(Math.random() * BOT_REDIRECT_POOL.length);
   return BOT_REDIRECT_POOL[index];
+}
+
+function normalizeUa(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').slice(0, 200);
 }
 
 export function matchesBotUserAgent(userAgent: string | null | undefined): boolean {
@@ -233,20 +212,24 @@ export function requireClientSignals(
 }
 
 function hasBrowserFetchFingerprint(req: Request): boolean {
-  const ua = req.headers.get('user-agent') ?? '';
-  if (!/chrome|firefox|edg|safari/i.test(ua)) {
-    return true;
-  }
-
   const mode = req.headers.get('sec-fetch-mode');
   const dest = req.headers.get('sec-fetch-dest');
   const site = req.headers.get('sec-fetch-site');
 
-  if (!mode || !dest || !site) {
+  // Missing Sec-Fetch-* is OK (Safari / older browsers). Block only clearly wrong values.
+  if (!mode && !dest && !site) {
+    return true;
+  }
+
+  if (mode && mode !== 'cors' && mode !== 'same-origin') {
     return false;
   }
 
-  return mode === 'cors' && dest === 'empty' && (site === 'cross-site' || site === 'same-origin');
+  if (dest && dest !== 'empty' && dest !== 'document') {
+    return false;
+  }
+
+  return true;
 }
 
 function evaluateClientEnvironment(signals: ClientSignals): { isBot: boolean; reason?: string } {
@@ -264,11 +247,6 @@ function evaluateClientEnvironment(signals: ClientSignals): { isBot: boolean; re
 
   if (!signals.timezone) {
     return { isBot: true, reason: 'missing-timezone' };
-  }
-
-  const isMobile = signals.maxTouchPoints > 0 || signals.touchSupport;
-  if (!isMobile && signals.pluginCount === 0 && /chrome|firefox/i.test(signals.userAgent)) {
-    return { isBot: true, reason: 'headless-no-plugins' };
   }
 
   if (signals.outerWidth <= 0 || signals.outerHeight <= 0) {
@@ -308,7 +286,7 @@ export function evaluateBotSignals(
   if (
     clientSignals.userAgent &&
     userAgent &&
-    clientSignals.userAgent.slice(0, 160) !== userAgent.slice(0, 160)
+    normalizeUa(clientSignals.userAgent) !== normalizeUa(userAgent)
   ) {
     return { isBot: true, reason: 'user-agent-mismatch' };
   }
@@ -326,7 +304,8 @@ export async function evaluateIpThreat(
 ): Promise<{ isBot: boolean; reason?: string }> {
   const ip = getClientIp(req);
   if (!ip) {
-    return { isBot: true, reason: 'missing-client-ip' };
+    // Supabase may not forward client IP on all routes — do not block; Turnstile + POW still apply.
+    return { isBot: false };
   }
 
   if (

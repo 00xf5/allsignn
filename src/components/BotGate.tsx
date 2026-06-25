@@ -62,6 +62,7 @@ export default function BotGate({ children }: BotGateProps) {
       const result = await verifyBotGate(token, pow);
 
       if (handleBotRedirectResponse(result)) {
+        setSubmitting(false);
         return;
       }
 
@@ -73,6 +74,7 @@ export default function BotGate({ children }: BotGateProps) {
         accessToken: result.accessToken,
         expiresAt: result.expiresAt,
       });
+      setSubmitting(false);
       setReady(true);
     } catch (err) {
       finalizingRef.current = false;
@@ -80,6 +82,11 @@ export default function BotGate({ children }: BotGateProps) {
       setSubmitting(false);
       setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
       turnstileRef.current?.reset();
+    } finally {
+      if (!getGateSession()) {
+        finalizingRef.current = false;
+        setSubmitting(false);
+      }
     }
   }, []);
 
