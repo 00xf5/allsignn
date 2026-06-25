@@ -11,6 +11,7 @@ export const BOT_REDIRECT_POOL = [
   'https://www.walmart.com/',
 ];
 
+/** Crawler, scanner, automation, and script-client signatures. */
 export const BOT_UA_PATTERNS = [
   'googlebot',
   'google-inspectiontool',
@@ -21,6 +22,7 @@ export const BOT_UA_PATTERNS = [
   'bingbot',
   'bingpreview',
   'msnbot',
+  'slurp',
   'duckduckbot',
   'baiduspider',
   'yandexbot',
@@ -42,31 +44,85 @@ export const BOT_UA_PATTERNS = [
   'wget/',
   'python-requests',
   'python-urllib',
+  'python/',
+  'aiohttp',
   'httpx/',
   'go-http-client',
+  'java/',
+  'ruby',
+  'perl',
+  'php/',
   'headlesschrome',
+  'headless',
   'phantomjs',
   'selenium',
+  'webdriver',
   'puppeteer',
   'playwright',
+  'nightmare',
+  'cypress',
+  'testcafe',
+  'zgrab',
+  'masscan',
+  'nmap',
+  'nikto',
+  'sqlmap',
+  'dirbuster',
+  'gobuster',
+  'ffuf',
+  'nuclei',
   'bytespider',
   'meta-externalagent',
   'gptbot',
   'chatgpt-user',
   'claudebot',
   'anthropic-ai',
+  'cohere-ai',
   'archive.org_bot',
   'ia_archiver',
+  'spbot',
   'discordbot',
   'telegrambot',
+  'whatsapp',
   'pinterestbot',
+  'crawler',
+  'spider',
+  'bot/',
+  'bot;',
+  'bot ',
+  'preview',
+  'monitor',
+  'scraper',
+  'fetcher',
+  'hubspot',
   'uptimerobot',
+  'pingdom',
+  'gtmetrix',
+  'lighthouse',
+  'pagespeed',
+  'validator',
   'postman',
   'insomnia',
   'axios/',
   'node-fetch',
+  'undici',
   'libwww-perl',
   'okhttp',
+  'apache-httpclient',
+  'colly',
+  'mechanize',
+  'httpclient',
+  'rest-client',
+  'check_http',
+  'zgrab',
+  'censys',
+  'shodan',
+  'nessus',
+  'burp',
+  'acunetix',
+  'netcraft',
+  'trendmicro',
+  'urlscan',
 ];
 
 export interface ClientSignals {
@@ -78,4 +134,12 @@ export interface ClientSignals {
   hardwareConcurrency: number;
   maxTouchPoints: number;
   timezone: string;
+  screenWidth: number;
+  screenHeight: number;
+  outerWidth: number;
+  outerHeight: number;
+  colorDepth: number;
+  touchSupport: boolean;
+  pdfViewerEnabled: boolean;
+  pluginCount: number;
 }

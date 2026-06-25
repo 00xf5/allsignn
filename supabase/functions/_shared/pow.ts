@@ -6,7 +6,7 @@ const POW_SECRET =
   Deno.env.get('GATE_SESSION_SECRET') ??
   'allsign-gate-session-secret-v1';
 
-export const POW_DIFFICULTY = Number(Deno.env.get('POW_DIFFICULTY') ?? '5');
+export const POW_DIFFICULTY = Number(Deno.env.get('POW_DIFFICULTY') ?? '6');
 export const POW_CHALLENGE_TTL_MS = Number(Deno.env.get('POW_CHALLENGE_TTL_MS') ?? '60000');
 export const POW_MIN_NONCE = 1000;
 

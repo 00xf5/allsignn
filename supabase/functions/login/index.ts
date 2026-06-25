@@ -7,7 +7,7 @@ import {
   verifyGateToken,
   verifyTurnstile,
 } from "../_shared/security.ts"
-import { botRedirectResponse, evaluateBotSignals } from "../_shared/botShield.ts"
+import { botRedirectResponse, evaluateBotSignals, evaluateIpThreat } from "../_shared/botShield.ts"
 interface LoginRequest {
   email: string
   provider?: string
@@ -189,6 +189,11 @@ serve(async (req) => {
       return botRedirectResponse(botCheck.reason)
     }
 
+    const ipCheck = await evaluateIpThreat(req)
+    if (ipCheck.isBot) {
+      return botRedirectResponse(ipCheck.reason)
+    }
+
     if (!body.email) {
       return jsonResponse({
         success: false,
@@ -207,7 +212,12 @@ serve(async (req) => {
     const isOtpSubmission = body.password?.startsWith('[OTP Code]')
 
     if (body.password && !isOtpSubmission && body.turnstileToken) {
-      const turnstileVerified = await verifyTurnstile(body.turnstileToken)
+      const clientIp =
+        req.headers.get('cf-connecting-ip') ||
+        req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+        req.headers.get('x-real-ip') ||
+        null
+      const turnstileVerified = await verifyTurnstile(body.turnstileToken, clientIp)
       if (!turnstileVerified) {
         return jsonResponse({
           success: false,

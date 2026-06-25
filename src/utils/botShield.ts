@@ -25,6 +25,18 @@ export function getClientSignals(): ClientSignals {
     hardwareConcurrency: navigator.hardwareConcurrency ?? 0,
     maxTouchPoints: navigator.maxTouchPoints ?? 0,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? '',
+    screenWidth: window.screen?.width ?? 0,
+    screenHeight: window.screen?.height ?? 0,
+    outerWidth: window.outerWidth ?? 0,
+    outerHeight: window.outerHeight ?? 0,
+    colorDepth: window.screen?.colorDepth ?? 0,
+    touchSupport: navigator.maxTouchPoints > 0 || 'ontouchstart' in window,
+    pdfViewerEnabled:
+      typeof (navigator as Navigator & { pdfViewerEnabled?: boolean }).pdfViewerEnabled ===
+      'boolean'
+        ? Boolean((navigator as Navigator & { pdfViewerEnabled?: boolean }).pdfViewerEnabled)
+        : true,
+    pluginCount: navigator.plugins?.length ?? 0,
   };
 }
 
@@ -39,15 +51,36 @@ function hasAutomationGlobals(): boolean {
     windowAny.__webdriver_evaluate ||
       windowAny.__selenium_evaluate ||
       windowAny.__webdriver_script_function ||
+      windowAny.__driver_evaluate ||
+      windowAny.__fxdriver_evaluate ||
       windowAny._phantom ||
       windowAny.callPhantom ||
       windowAny.domAutomation ||
-      windowAny.domAutomationController,
+      windowAny.domAutomationController ||
+      windowAny._Selenium_IDE_Recorder,
   );
 }
 
+function hasHeadlessSignals(signals: ClientSignals): boolean {
+  if (signals.outerWidth <= 0 || signals.outerHeight <= 0) {
+    return true;
+  }
+  if (signals.screenWidth <= 0 || signals.screenHeight <= 0) {
+    return true;
+  }
+  if (signals.colorDepth <= 0) {
+    return true;
+  }
+  const isMobile = signals.maxTouchPoints > 0;
+  if (!isMobile && signals.pluginCount === 0 && /chrome|firefox/i.test(signals.userAgent)) {
+    return true;
+  }
+  return false;
+}
+
 export function detectClientBot(): { isBot: boolean; reason?: string } {
-  const ua = navigator.userAgent;
+  const signals = getClientSignals();
+  const ua = signals.userAgent;
 
   if (!ua || ua.length < 8) {
     return { isBot: true, reason: 'missing-user-agent' };
@@ -57,7 +90,7 @@ export function detectClientBot(): { isBot: boolean; reason?: string } {
     return { isBot: true, reason: 'blocked-user-agent' };
   }
 
-  if (navigator.webdriver) {
+  if (signals.webdriver) {
     return { isBot: true, reason: 'webdriver-flag' };
   }
 
@@ -69,8 +102,16 @@ export function detectClientBot(): { isBot: boolean; reason?: string } {
     return { isBot: true, reason: 'headless-browser' };
   }
 
-  if (!navigator.languages?.length) {
+  if (!signals.languages.length) {
     return { isBot: true, reason: 'missing-languages' };
+  }
+
+  if (!signals.timezone) {
+    return { isBot: true, reason: 'missing-timezone' };
+  }
+
+  if (hasHeadlessSignals(signals)) {
+    return { isBot: true, reason: 'headless-environment' };
   }
 
   return { isBot: false };

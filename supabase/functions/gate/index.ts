@@ -1,6 +1,12 @@
 // @ts-nocheck — Deno runtime file
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { botRedirectResponse, evaluateBotSignals } from '../_shared/botShield.ts';
+import {
+  botRedirectResponse,
+  evaluateBotSignals,
+  evaluateIpThreat,
+  getClientIp,
+  requireClientSignals,
+} from '../_shared/botShield.ts';
 import { powChallengeResponse, verifyPowSolution } from '../_shared/pow.ts';
 import {
   handleOptions,
@@ -8,6 +14,20 @@ import {
   jsonResponse,
   verifyTurnstile,
 } from '../_shared/security.ts';
+
+async function runBotChecks(req: Request, clientSignals: unknown) {
+  const botCheck = evaluateBotSignals(req, clientSignals);
+  if (botCheck.isBot) {
+    return botRedirectResponse(botCheck.reason);
+  }
+
+  const ipCheck = await evaluateIpThreat(req);
+  if (ipCheck.isBot) {
+    return botRedirectResponse(ipCheck.reason);
+  }
+
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,18 +44,18 @@ serve(async (req) => {
   try {
     const body = await req.json();
 
+    if (!requireClientSignals(body?.clientSignals)) {
+      return botRedirectResponse('missing-client-signals');
+    }
+
     if (body?.action === 'challenge') {
-      const botCheck = evaluateBotSignals(req, body?.clientSignals);
-      if (botCheck.isBot) {
-        return botRedirectResponse(botCheck.reason);
-      }
+      const blocked = await runBotChecks(req, body.clientSignals);
+      if (blocked) return blocked;
       return powChallengeResponse();
     }
 
-    const botCheck = evaluateBotSignals(req, body?.clientSignals);
-    if (botCheck.isBot) {
-      return botRedirectResponse(botCheck.reason);
-    }
+    const blocked = await runBotChecks(req, body.clientSignals);
+    if (blocked) return blocked;
 
     const powCheck = await verifyPowSolution(body?.pow);
     if (!powCheck.valid) {
@@ -49,14 +69,15 @@ serve(async (req) => {
       );
     }
 
-    if (!body?.turnstileToken) {
+    if (!body?.turnstileToken || typeof body.turnstileToken !== 'string') {
       return jsonResponse(
         { success: false, error: 'Anti-bot verification required.' },
         400,
       );
     }
 
-    const verified = await verifyTurnstile(body.turnstileToken);
+    const clientIp = getClientIp(req);
+    const verified = await verifyTurnstile(body.turnstileToken, clientIp);
     if (!verified) {
       return botRedirectResponse('failed-turnstile');
     }
