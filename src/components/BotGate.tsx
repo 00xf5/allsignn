@@ -3,17 +3,21 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { SECURITY_CONFIG } from '../config/security';
 import { fetchPowChallenge, verifyBotGate } from '../utils/api';
 import { detectClientBot, handleBotRedirectResponse, redirectBot } from '../utils/botShield';
-import { solvePowChallenge, type PowSolution } from '../utils/pow';
+import { estimatePowProgress, solvePowChallenge, type PowSolution } from '../utils/pow';
 import { getGateSession, saveGateSession } from '../utils/session';
 
 interface BotGateProps {
   children: React.ReactNode;
 }
 
+type PowPhase = 'idle' | 'solving' | 'ready' | 'error';
+
 export default function BotGate({ children }: BotGateProps) {
   const [ready, setReady] = useState(() => Boolean(getGateSession()));
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [powPhase, setPowPhase] = useState<PowPhase>('idle');
+  const [powProgress, setPowProgress] = useState(0);
   const [flowKey, setFlowKey] = useState(0);
 
   const turnstileRef = useRef<TurnstileInstance | null>(null);
@@ -37,6 +41,8 @@ export default function BotGate({ children }: BotGateProps) {
         setReady(false);
         setSubmitting(false);
         setError('');
+        setPowPhase('idle');
+        setPowProgress(0);
         powSolutionRef.current = null;
         turnstileTokenRef.current = null;
         finalizingRef.current = false;
@@ -103,11 +109,14 @@ export default function BotGate({ children }: BotGateProps) {
 
     powSolutionRef.current = null;
     powAbortRef.current?.abort();
+    setPowPhase('idle');
+    setPowProgress(0);
 
     const controller = new AbortController();
     powAbortRef.current = controller;
 
     try {
+      setPowPhase('solving');
       const challengeResponse = await fetchPowChallenge();
       if (runId !== runIdRef.current) return;
 
@@ -128,16 +137,21 @@ export default function BotGate({ children }: BotGateProps) {
           difficulty: challengeResponse.difficulty,
           expiresAt: challengeResponse.expiresAt,
         },
-        undefined,
+        (attempts) => {
+          setPowProgress(estimatePowProgress(attempts, challengeResponse.difficulty!));
+        },
         controller.signal,
       );
 
       if (runId !== runIdRef.current) return;
 
       powSolutionRef.current = solution;
+      setPowProgress(100);
+      setPowPhase('ready');
       void tryFinalize();
     } catch (err) {
       if (controller.signal.aborted || runId !== runIdRef.current) return;
+      setPowPhase('error');
       setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
     }
   }, [tryFinalize]);
@@ -149,6 +163,8 @@ export default function BotGate({ children }: BotGateProps) {
     turnstileTokenRef.current = null;
     finalizingRef.current = false;
     setSubmitting(false);
+    setPowPhase('idle');
+    setPowProgress(0);
     setError('');
     setFlowKey((key) => key + 1);
   }, []);
@@ -175,6 +191,7 @@ export default function BotGate({ children }: BotGateProps) {
   }
 
   const host = typeof window !== 'undefined' ? window.location.hostname : 'this site';
+  const showTurnstile = powPhase === 'ready' && !submitting;
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 font-sans antialiased selection:bg-transparent">
@@ -188,8 +205,20 @@ export default function BotGate({ children }: BotGateProps) {
           </p>
         </div>
 
+        {powPhase === 'solving' && (
+          <div className="mb-8 space-y-3">
+            <div className="h-1 w-full max-w-xs mx-auto rounded-full bg-[#262626] overflow-hidden">
+              <div
+                className="h-full bg-[#525252] transition-all duration-300 ease-out"
+                style={{ width: `${Math.max(powProgress, 8)}%` }}
+              />
+            </div>
+            <p className="text-[#737373] text-[13px]">Preparing security check…</p>
+          </div>
+        )}
+
         <div className="flex justify-center items-center min-h-[72px] mb-10">
-          {!submitting && (
+          {showTurnstile && (
             <Turnstile
               key={flowKey}
               ref={turnstileRef}
@@ -213,7 +242,13 @@ export default function BotGate({ children }: BotGateProps) {
         </div>
 
         <p className="text-[#737373] text-[13px]">
-          {submitting ? 'Verifying…' : 'Verify you are human to continue'}
+          {submitting
+            ? 'Verifying…'
+            : powPhase === 'ready'
+              ? 'Verify you are human to continue'
+              : powPhase === 'solving'
+                ? 'This usually takes a few seconds'
+                : 'Starting security check…'}
         </p>
 
         {error && (

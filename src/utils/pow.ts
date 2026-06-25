@@ -1,7 +1,7 @@
-export const POW_DIFFICULTY = 5;
+export const POW_DIFFICULTY = 4;
 export const POW_CHALLENGE_TTL_MS = 60_000;
 export const POW_MIN_NONCE = 1000;
-export const POW_YIELD_EVERY = 1_500;
+export const POW_YIELD_EVERY = 8_000;
 
 export interface PowChallenge {
   challengeToken: string;
@@ -32,6 +32,10 @@ export async function solvePowChallenge(
   while (true) {
     if (signal?.aborted) {
       throw new Error('Proof-of-work cancelled.');
+    }
+
+    if (Date.now() >= challenge.expiresAt) {
+      throw new Error('Security check timed out. Please try again.');
     }
 
     const hash = await sha256Hex(`${challenge.prefix}:${nonce}`);
