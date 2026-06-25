@@ -8,7 +8,7 @@ const App = lazy(() => import('./App.tsx'));
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BotGate>
-      <Suspense fallback={null}>
+      <Suspense fallback={<div className="min-h-screen bg-[#111]" />}>
         <App />
       </Suspense>
     </BotGate>

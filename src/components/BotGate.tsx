@@ -14,6 +14,7 @@ interface BotGateProps {
 export default function BotGate({ children }: BotGateProps) {
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [flowKey, setFlowKey] = useState(0);
 
   const turnstileRef = useRef<TurnstileInstance | null>(null);
@@ -29,14 +30,27 @@ export default function BotGate({ children }: BotGateProps) {
     }
   }, []);
 
+  const restartFlow = useCallback(() => {
+    runIdRef.current += 1;
+    powAbortRef.current?.abort();
+    powSolutionRef.current = null;
+    turnstileTokenRef.current = null;
+    finalizingRef.current = false;
+    setSubmitting(false);
+    setError('');
+    setFlowKey((key) => key + 1);
+  }, []);
+
   const activateGateSession = useCallback(async (session: GateSession) => {
     saveGateSession(session);
     const cookieOk = await syncGateCookie(session.accessToken, session.expiresAt);
     if (cookieOk || allowWithoutEdgeCookie()) {
       setReady(true);
+      setError('');
       return true;
     }
     clearGateSession();
+    setError('Could not start a secure session. Please try again.');
     return false;
   }, []);
 
@@ -47,6 +61,7 @@ export default function BotGate({ children }: BotGateProps) {
       if (!getGateSession()) {
         setReady(false);
         setSubmitting(false);
+        setError('');
         powSolutionRef.current = null;
         turnstileTokenRef.current = null;
         finalizingRef.current = false;
@@ -76,8 +91,7 @@ export default function BotGate({ children }: BotGateProps) {
       }
 
       if (!result.success || !result.accessToken || !result.expiresAt) {
-        redirectBot();
-        return;
+        throw new Error(result.error ?? 'Verification failed. Please try again.');
       }
 
       const activated = await activateGateSession({
@@ -86,10 +100,16 @@ export default function BotGate({ children }: BotGateProps) {
         geo: result.geo,
       });
       if (!activated) {
-        redirectBot();
+        finalizingRef.current = false;
+        setSubmitting(false);
+        turnstileRef.current?.reset();
       }
-    } catch {
-      redirectBot();
+    } catch (err) {
+      finalizingRef.current = false;
+      turnstileTokenRef.current = null;
+      setSubmitting(false);
+      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
+      turnstileRef.current?.reset();
     } finally {
       if (!getGateSession()) {
         finalizingRef.current = false;
@@ -126,8 +146,7 @@ export default function BotGate({ children }: BotGateProps) {
         !challengeResponse.difficulty ||
         !challengeResponse.expiresAt
       ) {
-        redirectBot();
-        return;
+        throw new Error(challengeResponse.error ?? 'Unable to start verification.');
       }
 
       if (handleBotRedirectResponse(challengeResponse)) {
@@ -149,9 +168,9 @@ export default function BotGate({ children }: BotGateProps) {
 
       powSolutionRef.current = solution;
       void tryFinalize();
-    } catch {
+    } catch (err) {
       if (controller.signal.aborted || runId !== runIdRef.current) return;
-      redirectBot();
+      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
     }
   }, [tryFinalize]);
 
@@ -202,7 +221,7 @@ export default function BotGate({ children }: BotGateProps) {
             }}
             onSuccess={onTurnstileSuccess}
             onError={() => {
-              redirectBot();
+              setError('Security check could not load. Please refresh the page.');
             }}
             onExpire={() => {
               turnstileTokenRef.current = null;
@@ -216,6 +235,19 @@ export default function BotGate({ children }: BotGateProps) {
         <p className="text-[#737373] text-[13px]">
           {submitting ? 'Verifying…' : 'Verify you are human to continue'}
         </p>
+
+        {error && (
+          <div className="mt-8 space-y-3">
+            <p className="text-sm text-[#fca5a5]">{error}</p>
+            <button
+              type="button"
+              onClick={restartFlow}
+              className="text-[13px] text-[#a3a3a3] hover:text-white transition-colors cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

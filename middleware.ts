@@ -1,9 +1,4 @@
-import {
-  GATE_COOKIE_NAME,
-  isPublicAssetPath,
-  readCookie,
-  verifyGateToken,
-} from './lib/gateToken';
+import { GATE_COOKIE_NAME, isPublicAssetPath, readCookie, verifyGateToken } from './lib/gateToken';
 
 export const config = {
   matcher: ['/assets/:path*'],
