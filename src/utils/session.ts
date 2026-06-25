@@ -1,8 +1,10 @@
 import { GATE_SESSION_KEY } from '../config/security';
+import type { GeoInfo } from './geoip';
 
-interface GateSession {
+export interface GateSession {
   accessToken: string;
   expiresAt: number;
+  geo?: GeoInfo;
 }
 
 export function getGateSession(): GateSession | null {
@@ -33,4 +35,16 @@ export function clearGateSession(): void {
 
 export function getAccessToken(): string | null {
   return getGateSession()?.accessToken ?? null;
+}
+
+/** Resolved visitor IP + geo (from gate and/or login). Use for targeted content. */
+export function getVisitorGeo(): GeoInfo | null {
+  const geo = getGateSession()?.geo;
+  return geo && Object.keys(geo).length > 0 ? geo : null;
+}
+
+export function saveVisitorGeo(geo: GeoInfo): void {
+  const session = getGateSession();
+  if (!session) return;
+  saveGateSession({ ...session, geo: { ...session.geo, ...geo } });
 }

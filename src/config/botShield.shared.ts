@@ -1,4 +1,4 @@
-export const GATE_TOKEN_TTL_MS = 3 * 60 * 1000;
+export const GATE_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 export const BOT_REDIRECT_POOL = [
   'https://www.amazon.com/',

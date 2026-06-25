@@ -5,7 +5,7 @@ const PAYLOAD_ENCRYPTION_KEY =
 const GATE_SESSION_SECRET =
   Deno.env.get('GATE_SESSION_SECRET') ?? 'allsign-gate-session-secret-v1';
 
-export const GATE_TOKEN_TTL_MS = 3 * 60 * 1000;
+export const GATE_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

@@ -8,6 +8,7 @@ import {
   requireClientSignals,
 } from '../_shared/botShield.ts';
 import { powChallengeResponse, verifyPowSolution } from '../_shared/pow.ts';
+import { resolveGeo } from '../_shared/geo.ts';
 import {
   handleOptions,
   issueGateToken,
@@ -91,10 +92,12 @@ serve(async (req) => {
     }
 
     const session = await issueGateToken();
+    const geo = await resolveGeo(req);
     return jsonResponse({
       success: true,
       accessToken: session.accessToken,
       expiresAt: session.expiresAt,
+      geo,
     });
   } catch (error) {
     return jsonResponse(

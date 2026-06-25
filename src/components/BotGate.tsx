@@ -70,6 +70,7 @@ export default function BotGate({ children }: BotGateProps) {
       saveGateSession({
         accessToken: result.accessToken,
         expiresAt: result.expiresAt,
+        geo: result.geo,
       });
       setReady(true);
     } catch {

