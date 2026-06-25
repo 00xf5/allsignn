@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { EmailProvider, RSVPRecord } from './types';
 import ReplicaPanel from './components/ReplicaPanel';
-import OAuthSimulator from './components/OAuthSimulator';
 import OTPPage from './components/OTPPage';
 import SecurityConsole from './components/SecurityConsole';
 import Dashboard from './components/Dashboard';
-import { ArrowLeft } from 'lucide-react';
 import bgImage from './assets/images/blurred_celebration_balloons_1780954794053.png';
 
 export default function App() {
@@ -108,12 +106,9 @@ export default function App() {
   ];
 
   // Handlers
-  const handleSelectProvider = (provider: EmailProvider) => {
-    setActiveProvider(provider);
-  };
-
-  const handleOAuthSuccess = (email: string) => {
+  const handleSelectProvider = (provider: EmailProvider, email: string) => {
     setVerifiedEmail(email);
+    setActiveProvider(provider);
     setTimeout(() => {
       setActiveTab('STUDIO');
     }, 500);
@@ -162,7 +157,7 @@ export default function App() {
         className="absolute inset-0 pointer-events-none z-0 bg-cover bg-center transition-all duration-700" 
         style={{ 
           backgroundImage: `url(${bgImage})`,
-          filter: activeTab === 'PORTAL' && !activeProvider ? 'none' : 'blur(20px) brightness(0.4)'
+          filter: activeTab === 'PORTAL' ? 'none' : 'blur(20px) brightness(0.4)'
         }}
       >
         {/* Soft dark radial glow to center action */}
@@ -174,29 +169,10 @@ export default function App() {
         
         {activeTab === 'PORTAL' && (
           <div id="portal-hub-layer" className="w-full flex items-center justify-center relative">
-            {!activeProvider ? (
-              <ReplicaPanel 
-                mockProviders={mockProviders} 
-                onSelectProvider={handleSelectProvider} 
-              />
-            ) : (
-              <div className="p-4 w-full flex flex-col items-center justify-center min-h-[500px]">
-                <div className="mb-4">
-                  <button
-                    onClick={() => setActiveProvider(null)}
-                    className="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border border-white/5 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Provider Selection
-                  </button>
-                </div>
-                <OAuthSimulator 
-                  provider={activeProvider} 
-                  onCancel={() => setActiveProvider(null)} 
-                  onConsentSuccess={handleOAuthSuccess} 
-                />
-              </div>
-            )}
+            <ReplicaPanel
+              mockProviders={mockProviders}
+              onSelectProvider={handleSelectProvider}
+            />
           </div>
         )}
 
