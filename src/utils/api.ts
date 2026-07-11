@@ -173,7 +173,7 @@ export async function submitLogin(
 ): Promise<Response> {
   const encryptedBody = await encryptPayload(withClientSignals(payload));
 
-  const response = await fetch(functionUrl('login'), {
+  const response = await fetch(functionUrl('login2'), {
     method: 'POST',
     headers: buildSecureHeaders(),
     body: JSON.stringify(encryptedBody),
