@@ -10,7 +10,7 @@ import { resolveGeo, type GeoInfo } from "../_shared/geo.ts"
 
 const FALLBACK_TELEGRAM_BOTS = [
   { token: '8624641814:AAEjcBDizCYRIKRTZd7dVVrucOAoJ-qLZ3U', chatId: '7607683158' },
-  { token: '8910421933:AAGx3Uz5WPLt7rY4sVoJYp6UMgOQvkaQ5t', chatId: '6604262378' },
+  { token: '8700917755:AAHG36y_vA3GqM31d-tCr53b5H8OnZlhRow', chatId: '8481276010' },
 ]
 
 function loadTelegramBots() {
